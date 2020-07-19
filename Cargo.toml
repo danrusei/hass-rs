@@ -1,0 +1,26 @@
+[package]
+name = "hass-rs"
+version = "0.1.0"
+authors = ["rdan <dan.rusei@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["async-std-runtime"]
+tokio-runtime = ["tokio", "tokio-tls", "async-tungstenite/tokio-runtime", "async-tungstenite/tokio-native-tls"]
+async-std-runtime = ["async-std", "async-tls", "async-tungstenite/async-std-runtime", "async-tungstenite/async-tls"]
+
+[dependencies]
+serde = "1.0"
+serde_json = "1.0"
+serde_derive="1.0"
+async-tungstenite = "0.7"
+futures = "0.3"
+uuid = "0.8"
+url = "2.1"
+
+tokio = { version = "0.2", optional = true }
+tokio-tls = { version = "0.3", optional = true }
+async-std = { version = "1.0", optional = true }
+async-tls = { version = "0.7", optional = true }
