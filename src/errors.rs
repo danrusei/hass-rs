@@ -1,6 +1,6 @@
 //! # Hass error types
 use std::fmt;
-use async_tungstenite::tungstenite::error::Error as TungsteniteError;
+use async_tungstenite::tungstenite;
 
 pub type HassResult<T> = std::result::Result<T, HassError>;
 
@@ -17,7 +17,10 @@ pub enum HassError {
     ConnectionClosed,
 
     /// tungstenite
-    TungsteniteError(TungsteniteError),
+    TungsteniteError(tungstenite::error::Error),
+
+    /// others
+    Generic(String),
 } 
 
 impl fmt::Display for HassError {
@@ -26,17 +29,29 @@ impl fmt::Display for HassError {
             Self::ConnectionFailed => write!(f, "Cannot connect to gateway"),
             Self::ConnectionClosed => write!(f, "Connection closed unexpectedly"),
             Self::AuthenticationFailed => write!(f, "Authentication has failed"),
-            Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e)
+            Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
+            Self::Generic(detail) => write!(f, "Generic Error: {}", detail)
         }
         
     }
 }
 
-impl From<TungsteniteError> for HassError {
-    fn from(error: TungsteniteError) -> Self {
+impl From<tungstenite::error::Error> for HassError {
+    fn from(error: tungstenite::error::Error) -> Self {
         match error {
-            TungsteniteError::ConnectionClosed => HassError::ConnectionClosed,
+            tungstenite::error::Error::ConnectionClosed => HassError::ConnectionClosed,
             _ => HassError::TungsteniteError(error),
         }
+    }
+}
+
+impl From<&tungstenite::error::Error> for HassError {
+    fn from(error: &tungstenite::error::Error) -> Self {
+        let e = match error {
+            tungstenite::error::Error::ConnectionClosed => tungstenite::error::Error::ConnectionClosed,
+            tungstenite::error::Error::AlreadyClosed=> tungstenite::error::Error::AlreadyClosed,
+            _ => return HassError::Generic(format!("Error from ws {}", error)),
+        };
+        HassError::TungsteniteError(e)
     }
 }
