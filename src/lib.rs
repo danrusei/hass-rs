@@ -76,7 +76,7 @@ impl HassClient {
 
     pub fn create_url(&self) -> String {
         let protocol = if self.opts.ssl { "wss" } else { "ws" };
-        format!("{}://{}:{}", protocol, self.opts.host, self.opts.port)
+        format!("{}://{}:{}/api/websocket", protocol, self.opts.host, self.opts.port)
     }
 
     pub async fn connect(&mut self, token: &str) -> HassResult<()> {
