@@ -9,7 +9,7 @@ pub type HassResult<T> = std::result::Result<T, HassError>;
 #[derive(Debug)]
 pub enum HassError {
     //Returned when it connection to gateway has failed
-    ConnectionFailed,
+    CantConnectToGateway,
 
     //Returned when unable to auathenticate to gateway
     AuthenticationFailed,
@@ -32,7 +32,7 @@ impl std::error::Error for HassError {}
 impl fmt::Display for HassError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::ConnectionFailed => write!(f, "Cannot connect to gateway"),
+            Self::CantConnectToGateway => write!(f, "Cannot connect to gateway"),
             Self::ConnectionClosed => write!(f, "Connection closed unexpectedly"),
             Self::AuthenticationFailed => write!(f, "Authentication has failed"),
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
