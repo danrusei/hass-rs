@@ -92,6 +92,22 @@ impl HassClient {
 
         Ok(self.sender = Some(sender))
     }
+
+    pub async fn send(
+        &mut self,
+        id: Uuid,
+        payload: Vec<u8>,
+    ) -> HassResult<(Response, Receiver<HassResult<Response>>)> {
+        let (sender, mut receiver) = channel(1);
+
+        self.sender.as_mut().expect("It should contain a Sender").send(Cmd::Msg((sender, id, payload))).await?;
+
+        receiver
+            .next()
+            .await
+            .expect("It should contain the response")
+            .map(|r| (r, receiver))
+    }
 }
 
 fn sender_loop(
