@@ -93,7 +93,7 @@ impl HassClient {
         Ok(self.sender = Some(sender))
     }
 
-    pub async fn send(
+    pub async fn execute(
         &mut self,
         id: Uuid,
         payload: Vec<u8>,
