@@ -23,6 +23,8 @@ pub enum HassError {
     Generic(String),
 }
 
+impl std::error::Error for HassError {}
+
 impl fmt::Display for HassError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
