@@ -3,15 +3,20 @@
 //! Hass-rs is a HomeAssistant websokcte api library
 //! based on https://developers.home-assistant.io/docs/api/websocket specifications
 
+mod command;
+pub mod config;
 mod errors;
 mod messages;
 mod runtime;
 mod wsconn;
 
+use crate::command::{Auth, Command};
+use crate::config::Config;
 use crate::errors::{HassError, HassResult};
 use crate::messages::Response;
 use crate::wsconn::WsConn;
 
+use futures::SinkExt;
 use url;
 
 // Client defines client connection
@@ -19,21 +24,43 @@ use url;
 pub struct HassClient {
     pub(crate) opts: ConnectionOptions,
     pub(crate) token: String,
-    pub(crate) conn: Option<WsConn>,
+    pub(crate) gateway: Option<WsConn>,
 }
 
 impl HassClient {
     //Create a new Hass Client
-    pub fn new(host: &str, port: u16) -> HassClient {
+    pub fn new(config: Config) -> Self {
         HassClient {
             opts: ConnectionOptions {
-                host: host.to_owned(),
-                port: port,
-                ..Default::default()
+                host: config.host,
+                port: config.port,
+                ssl: false,
             },
-            token: String::new(),
-            conn: None
+            token: config.token,
+            gateway: None,
         }
+    }
+
+    pub async fn connect(&mut self) -> HassResult<()> {
+        let url = url::Url::parse(&self.create_url()).expect("failed to parse the url");
+        self.gateway = Some(WsConn::connect(url).await?);
+
+        let auth = Command::Auth(Auth {
+            msg_type: "auth".into(),
+            access_token: self.token.to_owned(),
+        });
+
+        self.gateway
+            .as_mut()
+            .expect("no connection to gateway ")
+            .to_gateway
+            .send(auth)
+            .await
+            .expect("Could not authethicate to gateway");
+
+        // Maybelisten for "type": "auth_required" from Server
+        // Why not to use "run" function to authenthicate
+        Ok(())
     }
 
     pub fn with_ssl(mut self) -> HassClient {
@@ -43,29 +70,25 @@ impl HassClient {
 
     pub fn create_url(&self) -> String {
         let protocol = if self.opts.ssl { "wss" } else { "ws" };
-        format!("{}://{}:{}/api/websocket", protocol, self.opts.host, self.opts.port)
+        format!(
+            "{}://{}:{}/api/websocket",
+            protocol, self.opts.host, self.opts.port
+        )
     }
 
-    pub async fn connect(&mut self, token: &str) -> HassResult<HassClient> {
-        self.token = token.to_owned();
-        let url = url::Url::parse(&self.create_url()).expect("failed to parse the url");
-        let conn = WsConn::connect(url).await?;
-        // use token to authenthicate
-        //example use run to authenthicate
-        todo!()
-    }
+    pub async fn command(&mut self, payload: &str) -> HassResult<()> {
+        let cmd = Command::Msg(10, payload.into());
 
-    pub fn auth(&self) -> HassClient {
-        todo!()
-    
-    }
+        self.gateway
+            .as_mut()
+            .expect("no connection to gateway ")
+            .to_gateway
+            .send(cmd)
+            .await
+            .expect("Could not send the command");
 
-    pub fn command(&self) -> HassResult<()> {
-        //public usage, to send commands over Hass websocket
-        // use run to send commands
-        todo!()
+        Ok(())
     }
-
 }
 
 #[derive(Debug)]
@@ -84,4 +107,3 @@ impl Default for ConnectionOptions {
         }
     }
 }
-

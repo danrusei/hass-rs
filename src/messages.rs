@@ -1,10 +1,10 @@
-use serde_derive::{Deserialize};
+use serde_derive::Deserialize;
 use serde_json::Value;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct Response {
-    pub request_id: Uuid,
+    pub sequence: Uuid,
     pub result: ResponseResult,
     pub status: ReponseStatus,
 }

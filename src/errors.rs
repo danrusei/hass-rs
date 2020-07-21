@@ -23,6 +23,9 @@ pub enum HassError {
     /// Errors while sending in mpsc channel
     ChannelSend(SendError),
 
+    /// Returned when it receives a unknown message format
+    UnknownPayloadReceived,
+
     /// others
     Generic(String),
 }
@@ -37,6 +40,7 @@ impl fmt::Display for HassError {
             Self::AuthenticationFailed => write!(f, "Authentication has failed"),
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
             Self::ChannelSend(e) => write!(f, "Channel Send Error: {}", e),
+            Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
             Self::Generic(detail) => write!(f, "Generic Error: {}", detail),
         }
     }
@@ -45,7 +49,7 @@ impl fmt::Display for HassError {
 impl From<SendError> for HassError {
     fn from(error: SendError) -> Self {
         match error {
-        _ => HassError::ChannelSend(error)
+            _ => HassError::ChannelSend(error),
         }
     }
 }
