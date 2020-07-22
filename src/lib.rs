@@ -52,7 +52,6 @@ impl HassClient {
         
         //receive the confirmation from server
         //make sure it generate the relevant error
-        //document steps below
 
         // Receive Hello event from the gatewat
         let message = self.gateway.as_mut().expect("No gateway provided")

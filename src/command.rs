@@ -27,6 +27,7 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize, PartialEq)]
 pub(crate) struct Auth {
+    #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) access_token: String,
 }
