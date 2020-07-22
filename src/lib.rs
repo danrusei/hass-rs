@@ -13,10 +13,10 @@ mod wsconn;
 use crate::command::{Auth, Command};
 use crate::config::Config;
 use crate::errors::{HassError, HassResult};
-use crate::messages::Response;
+use crate::messages::{Response};
 use crate::wsconn::WsConn;
 
-use futures::SinkExt;
+use futures::{SinkExt, StreamExt};
 use url;
 
 // Client defines client connection
@@ -44,17 +44,33 @@ impl HassClient {
     pub async fn connect(&mut self) -> HassResult<()> {
         let url = url::Url::parse(&self.create_url()).expect("failed to parse the url");
         self.gateway = Some(WsConn::connect(url).await?);
-        self.auth().await?;
+        self.authenticate().await?;
         Ok(())
     }
 
-    async fn auth(&mut self) -> HassResult<()> {
-        //listen for message form server
-        //respond with auth
+    async fn authenticate(&mut self) -> HassResult<()> {
+        
         //receive the confirmation from server
         //make sure it generate the relevant error
         //document steps below
 
+        // Receive Hello event from the gatewat
+        let message = self.gateway.as_mut().expect("No gateway provided")
+        .from_gateway.next().await
+        .ok_or_else(|| HassError::ConnectionClosed)?;
+
+        //once connected first message from server should be {"type": "auth_required"}
+        let hello_auth = match message {
+            Ok(Response::Auth_init(value)) => {
+                let hello: String = serde_json::from_str(&value).unwrap(); 
+                //deserialize the message into struct
+                //TODO
+                dbg!(hello);
+                 }
+            _ => return Err(HassError::UnknownPayloadReceived.into()),
+        };
+           
+        //Respond with auth {"type": "auth", "access_token": "XXXXX"}
         let auth = Command::Auth(Auth {
             msg_type: "auth".into(),
             access_token: self.token.to_owned(),
@@ -67,6 +83,10 @@ impl HassClient {
             .send(auth)
             .await
             .expect("Could not authethicate to gateway");
+
+        //if the client supplies valid authentication, 
+        //the authentication phase will complete by the server sending the {"type": "auth_ok"} message,
+        //otherwise {"type": "auth_invalid", "message": "Invalid password"}
 
         Ok(())
     }

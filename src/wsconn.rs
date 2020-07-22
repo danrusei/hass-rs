@@ -21,10 +21,10 @@ pub struct WsConn {
     //is the message sequence required by the Websocket server
     last_sequence: Arc<AtomicU64>,
 
-    //to_gateway is used to send commands
+    //to_gateway channel, used to send "Commands" msg to the gateway
     pub(crate) to_gateway: Sender<Command>,
 
-    //from_gateway is used to receive response
+    //from_gateway channel, used to receive "Response" msg from the gateway
     pub(crate) from_gateway: Receiver<HassResult<Response>>,
 }
 
@@ -157,7 +157,7 @@ async fn sender_loop(
                     //     let mut guard = requests.lock().await;
                     //     guard.clear();
                     // }
-                    _ => todo!(),
+                    _ => todo!("sender_loop, other options"),
                 },
                 None => {}
             }
@@ -180,8 +180,8 @@ async fn receiver_loop(
                     Err(e) => {},
                 },
                 Some(Ok(item)) => match item {
-                    TungsteniteMessage::Text(data) => todo!(),
-                    TungsteniteMessage::Ping(data) => todo!(),
+                    TungsteniteMessage::Text(data) => todo!("receiver_loop, got a Tungst Text message"),
+                    TungsteniteMessage::Ping(data) => todo!("receiver_loop, got a Tungst Text message"),
                     _ => {}
                 },
                 _ => {} // Some(Err(error)) => {
