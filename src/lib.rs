@@ -44,6 +44,16 @@ impl HassClient {
     pub async fn connect(&mut self) -> HassResult<()> {
         let url = url::Url::parse(&self.create_url()).expect("failed to parse the url");
         self.gateway = Some(WsConn::connect(url).await?);
+        self.auth().await?;
+        Ok(())
+    }
+
+    async fn auth(&mut self) -> HassResult<()> {
+        //listen for message form server
+        //respond with auth
+        //receive the confirmation from server
+        //make sure it generate the relevant error
+        //document steps below
 
         let auth = Command::Auth(Auth {
             msg_type: "auth".into(),
@@ -58,8 +68,6 @@ impl HassClient {
             .await
             .expect("Could not authethicate to gateway");
 
-        // Maybelisten for "type": "auth_required" from Server
-        // Why not to use "run" function to authenthicate
         Ok(())
     }
 

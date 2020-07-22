@@ -5,58 +5,62 @@ use crate::runtime::{connect_async, task, WebSocket};
 
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use futures::channel::mpsc::{channel, Receiver, Sender};
-use futures::lock::Mutex;
 use futures::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
-use std::collections::HashMap;
+
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
-
 use url;
-use uuid::Uuid;
-// #[derive(Debug)]
-// pub enum Cmd {
-//     Msg((Uuid, Sender<HassResult<Response>>, Vec<u8>)),
-//     Pong(Vec<u8>),
-//     Shutdown,
-// }
+
 #[derive(Debug)]
 pub struct WsConn {
+    //is the message sequence required by the Websocket server
     last_sequence: Arc<AtomicU64>,
+
+    //to_gateway is used to send commands
     pub(crate) to_gateway: Sender<Command>,
-    //below will be used to listen for events, see panda, gateway mod
-    //pub(crate) from_gateway: UnboundedReceiver<Event>,
+
+    //from_gateway is used to receive response
+    pub(crate) from_gateway: Receiver<HassResult<Response>>,
 }
 
 impl WsConn {
     pub async fn connect(url: url::Url) -> HassResult<WsConn> {
         let wsclient = connect_async(url).await.expect("Can't connect to gateway");
         let (sink, stream) = wsclient.split();
+
+        //Channels to recieve the Client Command and send it over to the Websocket server
         let (to_gateway, from_client) = channel::<Command>(20);
+
+        //Channels to receive the Responses from the Websocket server and send those over to Client
+        let (to_client, from_gateway) = channel::<HassResult<Response>>(20);
 
         let last_sequence = Arc::new(AtomicU64::default());
         let last_sequence_clone_sender = Arc::clone(&last_sequence);
         let last_sequence_clone_receiver = Arc::clone(&last_sequence);
 
-        let requests: Arc<Mutex<HashMap<Uuid, Sender<HassResult<Response>>>>> =
-            Arc::new(Mutex::new(HashMap::new()));
+        //from Client to Gateway
+        if let Err(e) = sender_loop(last_sequence_clone_sender, sink, from_client).await {
+            //TODO
+            // properly handle the Errors
+            return Err(e);
+        }
 
-        sender_loop(
-            last_sequence_clone_sender,
-            sink,
-            requests.clone(),
-            from_client,
-        );
-        receiver_loop(
-            last_sequence_clone_receiver,
-            stream,
-            requests.clone(),
-            to_gateway.clone(),
-        );
+        //from Gateway to Client
+        if let Err(e) = receiver_loop(last_sequence_clone_receiver, stream, to_client).await {
+            match e {
+                HassError::AuthenticationFailed | HassError::ConnectionClosed => {
+                    //TODO
+                    // to_client.send(Response::Close(e).await.expect("Messahe closed"));
+                    return Err(e);
+                }
+                _ => {}
+            }
+        };
 
         // Receive Hello event from the gatewat
         // let event = from_gateway.next().await.ok_or_else(|| PandaError::ConnectionClosed)?;
@@ -69,6 +73,7 @@ impl WsConn {
         Ok(WsConn {
             last_sequence,
             to_gateway,
+            from_gateway,
         })
     }
 
@@ -90,16 +95,21 @@ impl WsConn {
     // }
 }
 
-fn sender_loop(
+async fn sender_loop(
     last_sequence: Arc<AtomicU64>,
     mut sink: SplitSink<WebSocket, TungsteniteMessage>,
-    requests: Arc<Mutex<HashMap<Uuid, Sender<HassResult<Response>>>>>,
     mut from_client: Receiver<Command>,
-) {
+) -> HassResult<()> {
     task::spawn(async move {
         loop {
             match from_client.next().await {
                 Some(item) => match item {
+                    Command::Close => {
+                        return sink
+                            .send(TungsteniteMessage::Close(None))
+                            .await
+                            .map_err(|_| HassError::ConnectionClosed);
+                    }
                     Command::Auth(auth) => {
                         // Get the last sequence
                         // let seq = match last_sequence.load(Ordering::Relaxed) {
@@ -153,81 +163,92 @@ fn sender_loop(
             }
         }
     });
+
+    Ok(())
 }
 
-fn receiver_loop(
+async fn receiver_loop(
     last_sequence: Arc<AtomicU64>,
     mut stream: SplitStream<WebSocket>,
-    requests: Arc<Mutex<HashMap<Uuid, Sender<HassResult<Response>>>>>,
-    mut to_gateway: Sender<Command>,
-) {
+    mut to_client: Sender<HassResult<Response>>,
+) -> HassResult<()> {
     task::spawn(async move {
         loop {
             match stream.next().await {
-                Some(Err(error)) => {
-                    let mut guard = requests.lock().await;
-                    for s in guard.values_mut() {
-                        match s.send(Err(HassError::from(&error))).await {
-                            Ok(_r) => {}
-                            Err(_e) => {}
-                        }
-                    }
-                    guard.clear();
-                }
+                Some(Err(error)) => match to_client.send(Err(HassError::from(&error))).await {
+                    Ok(_r) => {}
+                    Err(e) => {},
+                },
                 Some(Ok(item)) => match item {
-                    TungsteniteMessage::Text(data) => {
-                        let response: Response = serde_json::from_str(&data)
-                            .map_err(|_| HassError::UnknownPayloadReceived)
-                            .unwrap();
-                        let mut guard = requests.lock().await;
-                        if response.status.code != 206 {
-                            let item = guard.remove(&response.sequence);
-                            drop(guard);
-                            if let Some(mut s) = item {
-                                match s.send(Ok(response)).await {
-                                    Ok(_r) => {}
-                                    Err(_e) => {}
-                                };
-                            }
-                        } else {
-                            let item = guard.get_mut(&response.sequence);
-                            if let Some(s) = item {
-                                match s.send(Ok(response)).await {
-                                    Ok(_r) => {}
-                                    Err(_e) => {}
-                                };
-                            }
-                            drop(guard);
-                        }
-                    }
-                    // TungsteniteMessage::Binary(data) => {
-                    //     let response: Response = serde_json::from_slice(&data).unwrap();
-                    //     let mut guard = requests.lock().await;
-                    //     if response.status.code != 206 {
-                    //         let item = guard.remove(&response.sequence);
-                    //         drop(guard);
-                    //         if let Some(mut s) = item {
-                    //             match s.send(Ok(response)).await {
-                    //                 Ok(_r) => {}
-                    //                 Err(_e) => {}
-                    //             };
-                    //         }
-                    //     } else {
-                    //         let item = guard.get_mut(&response.sequence);
-                    //         if let Some(s) = item {
-                    //             match s.send(Ok(response)).await {
-                    //                 Ok(_r) => {}
-                    //                 Err(_e) => {}
-                    //             };
-                    //         }
-                    //         drop(guard);
-                    //     }
-                    // }
-                    // TungsteniteMessage::Ping(data) => sender.send(Command::Pong(data)).await.unwrap(),
+                    TungsteniteMessage::Text(data) => todo!(),
+                    TungsteniteMessage::Ping(data) => todo!(),
                     _ => {}
                 },
-                None => {}
+                _ => {} // Some(Err(error)) => {
+                        //     let mut guard = requests.lock().await;
+                        //     for s in guard.values_mut() {
+                        //         match s.send(Err(HassError::from(&error))).await {
+                        //             Ok(_r) => {}
+                        //             Err(_e) => {}
+                        //         }
+                        //     }
+                        //     guard.clear();
+                        // }
+                        // Some(Ok(item)) => match item {
+                        //     TungsteniteMessage::Text(data) => {
+                        //         let response: Response = serde_json::from_str(&data)
+                        //             .map_err(|_| HassError::UnknownPayloadReceived)
+                        //             .unwrap();
+                        //         let mut guard = requests.lock().await;
+                        //         if response.status.code != 206 {
+                        //             let item = guard.remove(&response.sequence);
+                        //             drop(guard);
+                        //             if let Some(mut s) = item {
+                        //                 match s.send(Ok(response)).await {
+                        //                     Ok(_r) => {}
+                        //                     Err(_e) => {}
+                        //                 };
+                        //             }
+                        //         } else {
+                        //             let item = guard.get_mut(&response.sequence);
+                        //             if let Some(s) = item {
+                        //                 match s.send(Ok(response)).await {
+                        //                     Ok(_r) => {}
+                        //                     Err(_e) => {}
+                        //                 };
+                        //             }
+                        //             drop(guard);
+                        //         }
+                        //     }
+                        // TungsteniteMessage::Binary(data) => {
+                        //     let response: Response = serde_json::from_slice(&data).unwrap();
+                        //     let mut guard = requests.lock().await;
+                        //     if response.status.code != 206 {
+                        //         let item = guard.remove(&response.sequence);
+                        //         drop(guard);
+                        //         if let Some(mut s) = item {
+                        //             match s.send(Ok(response)).await {
+                        //                 Ok(_r) => {}
+                        //                 Err(_e) => {}
+                        //             };
+                        //         }
+                        //     } else {
+                        //         let item = guard.get_mut(&response.sequence);
+                        //         if let Some(s) = item {
+                        //             match s.send(Ok(response)).await {
+                        //                 Ok(_r) => {}
+                        //                 Err(_e) => {}
+                        //             };
+                        //         }
+                        //         drop(guard);
+                        //     }
+                        // }
+                        // TungsteniteMessage::Ping(data) => sender.send(Command::Pong(data)).await.unwrap(),
+                        //         _ => {}
+                        //     },
+                        //     None => {}
             }
         }
     });
+    Ok(())
 }

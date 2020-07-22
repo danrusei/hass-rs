@@ -4,7 +4,7 @@ use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 pub(crate) enum Command {
     Auth(Auth),
     Msg(u64, String),
-    Heartbeat(Option<u64>),
+    // maybe -> Heartbeat(Option<u64>),
     Close,
 }
 
@@ -17,6 +17,7 @@ impl Command {
                 let cmd_str = serde_json::to_string(&auth).unwrap();
                 TungsteniteMessage::Text(cmd_str)
             }
+            Self::Close => todo!(),
             _ => todo!(),
         }
     }
