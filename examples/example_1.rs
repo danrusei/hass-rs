@@ -4,6 +4,7 @@ static TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI0YzcyOGFjN
 
 #[cfg_attr(feature = "async-std-runtime", async_std::main)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("Creating the Websocket Client and Authenticate the session");
     let mut client = HassClient::new(Config {
         host: "localhost".to_owned(),
         port: 8123,
@@ -11,12 +12,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     client.connect().await?;
-    dbg!("Connected");
+    println!("WebSocket connection and authethication works");
 
-    let payload = "Trying again";
-    let result = client.command(payload).await?;
-    println!("{:?}", result);
-    dbg!("Command was sent");
+    println!("Sending a Ping command and waiting for Pong");
+
+    // println!("Sending a command to server")
+
+    // let payload = "Trying again";
+    // let result = client.command(payload).await?;
+    // println!("{:?}", result);
 
     Ok(())
 }

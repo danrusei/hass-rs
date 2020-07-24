@@ -2,14 +2,15 @@ use serde_derive::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub(crate) enum Response {
-    Auth_init(String),
+    AuthInit(String),
     Close(String),
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-pub(crate) struct Auth_init {
+pub(crate) struct AuthInit {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
+    pub(crate) ha_version: String,
 }
 
 // #[derive(Debug, Deserialize)]

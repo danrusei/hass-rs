@@ -6,14 +6,14 @@
 mod command;
 pub mod config;
 mod errors;
-mod messages;
+mod response;
 mod runtime;
 mod wsconn;
 
 use crate::command::{Auth, Command};
 use crate::config::Config;
 use crate::errors::{HassError, HassResult};
-use crate::messages::{Response};
+use crate::response::Response;
 use crate::wsconn::WsConn;
 
 use futures::{SinkExt, StreamExt};
@@ -49,44 +49,47 @@ impl HassClient {
     }
 
     async fn authenticate(&mut self) -> HassResult<()> {
-        
-        //receive the confirmation from server
-        //make sure it generate the relevant error
+        // Auth Request
+        let _ = self
+            .gateway
+            .as_mut()
+            .expect("No gateway provided")
+            .from_gateway
+            .next()
+            .await
+            .ok_or_else(|| HassError::ConnectionClosed)?;
 
-        // Receive Hello event from the gatewat
-        let message = self.gateway.as_mut().expect("No gateway provided")
-        .from_gateway.next().await
-        .ok_or_else(|| HassError::ConnectionClosed)?;
-
-        //once connected first message from server should be {"type": "auth_required"}
-        let hello_auth = match message {
-            Ok(Response::Auth_init(value)) => {
-                let hello: String = serde_json::from_str(&value).unwrap(); 
-                //deserialize the message into struct
-                //TODO
-                dbg!(hello);
-                 }
-            _ => return Err(HassError::UnknownPayloadReceived.into()),
-        };
-           
-        //Respond with auth {"type": "auth", "access_token": "XXXXX"}
-        let auth = Command::Auth(Auth {
-            msg_type: "auth".into(),
+        //Authenticate with auth {"type": "auth", "access_token": "XXXXX"}
+        let auth_req = Command::AuthInit(Auth {
+            msg_type: "auth".to_owned(),
             access_token: self.token.to_owned(),
         });
 
+        // Send the auth command to gateway
         self.gateway
             .as_mut()
-            .expect("no connection to gateway ")
+            .expect("No gateway provided")
             .to_gateway
-            .send(auth)
+            .send(auth_req)
             .await
-            .expect("Could not authethicate to gateway");
+            .map_err(|_| HassError::ConnectionClosed)?;
 
-        //if the client supplies valid authentication, 
-        //the authentication phase will complete by the server sending the {"type": "auth_ok"} message,
-        //otherwise {"type": "auth_invalid", "message": "Invalid password"}
+        // Receive auth response event from the gatewat
+        let auth_response = self
+            .gateway
+            .as_mut()
+            .expect("No gateway provided")
+            .from_gateway
+            .next()
+            .await
+            .ok_or_else(|| HassError::ConnectionClosed)?;
 
+        let value = match auth_response {
+            Ok(Response::AuthInit(v)) => v,
+            _ => return Err(HassError::UnknownPayloadReceived.into()),
+        };
+
+        dbg!(value);
         Ok(())
     }
 

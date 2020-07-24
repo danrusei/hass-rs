@@ -1,6 +1,6 @@
 use crate::command::Command;
 use crate::errors::{HassError, HassResult};
-use crate::messages::Response;
+use crate::response::Response;
 use crate::runtime::{connect_async, task, WebSocket};
 
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
@@ -21,10 +21,10 @@ pub struct WsConn {
     //is the message sequence required by the Websocket server
     last_sequence: Arc<AtomicU64>,
 
-    //to_gateway channel, used to send "Commands" msg to the gateway
+    //to_gateway channel, used by Client to send "Commands" msg to the Gateway
     pub(crate) to_gateway: Sender<Command>,
 
-    //from_gateway channel, used to receive "Response" msg from the gateway
+    //from_gateway channel, used by Client to receive "Response" msg from the Gateway
     pub(crate) from_gateway: Receiver<HassResult<Response>>,
 }
 
@@ -61,14 +61,6 @@ impl WsConn {
                 _ => {}
             }
         };
-
-        // Receive Hello event from the gatewat
-        // let event = from_gateway.next().await.ok_or_else(|| PandaError::ConnectionClosed)?;
-
-        // let heartbeat_interval = match event {
-        //     Event::Hello(v) => v,
-        //     _ => return Err(PandaError::UnknownPayloadReceived.into()),
-        // };
 
         Ok(WsConn {
             last_sequence,
@@ -110,7 +102,7 @@ async fn sender_loop(
                             .await
                             .map_err(|_| HassError::ConnectionClosed);
                     }
-                    Command::Auth(auth) => {
+                    Command::AuthInit(auth) => {
                         // Get the last sequence
                         // let seq = match last_sequence.load(Ordering::Relaxed) {
                         //         0 => None,
@@ -118,7 +110,7 @@ async fn sender_loop(
                         // };
 
                         // Transform command to TungsteniteMessage
-                        let cmd = Command::Auth(auth).to_tungstenite_message(None);
+                        let cmd = Command::AuthInit(auth).to_tungstenite_message();
 
                         // Send command to gateway
                         // NOT GOOD as it is not returned
@@ -177,11 +169,16 @@ async fn receiver_loop(
             match stream.next().await {
                 Some(Err(error)) => match to_client.send(Err(HassError::from(&error))).await {
                     Ok(_r) => {}
-                    Err(e) => {},
+                    Err(e) => {}
                 },
                 Some(Ok(item)) => match item {
-                    TungsteniteMessage::Text(data) => todo!("receiver_loop, got a Tungst Text message"),
-                    TungsteniteMessage::Ping(data) => todo!("receiver_loop, got a Tungst Text message"),
+                    TungsteniteMessage::Text(data) => {
+                        //just for authetication
+                        to_client.send(Ok(Response::AuthInit(data))).await.unwrap();
+                    }
+                    TungsteniteMessage::Ping(data) => {
+                        todo!("receiver_loop, got a Tungst Text message")
+                    }
                     _ => {}
                 },
                 _ => {} // Some(Err(error)) => {

@@ -1,8 +1,9 @@
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
+use serde::Serialize;
 
 #[derive(Debug)]
 pub(crate) enum Command {
-    Auth(Auth),
+    AuthInit(Auth),
     Msg(u64, String),
     // maybe -> Heartbeat(Option<u64>),
     Close,
@@ -11,9 +12,9 @@ pub(crate) enum Command {
 impl Command {
     /// This function transform a command into a TungsteniteMessage and needs the last
     /// gateway sequence in order to send it correctly
-    pub(crate) fn to_tungstenite_message(self, sequence: Option<u64>) -> TungsteniteMessage {
+    pub(crate) fn to_tungstenite_message(self) -> TungsteniteMessage {
         match self {
-            Self::Auth(auth) => {
+            Self::AuthInit(auth) => {
                 let cmd_str = serde_json::to_string(&auth).unwrap();
                 TungsteniteMessage::Text(cmd_str)
             }
@@ -22,8 +23,6 @@ impl Command {
         }
     }
 }
-
-use serde::Serialize;
 
 #[derive(Debug, Serialize, PartialEq)]
 pub(crate) struct Auth {
