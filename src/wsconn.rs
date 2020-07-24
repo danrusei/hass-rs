@@ -26,6 +26,10 @@ pub struct WsConn {
 
     //from_gateway channel, used by Client to receive "Response" msg from the Gateway
     pub(crate) from_gateway: Receiver<HassResult<Response>>,
+
+    //TODO
+    // I may have to create an hashmap for Commands and another one for Events
+    // so when I receive an response I can search both hashmap and know the type of event to json Deserialize 
 }
 
 impl WsConn {
@@ -172,6 +176,9 @@ async fn receiver_loop(
                     Err(e) => {}
                 },
                 Some(Ok(item)) => match item {
+                    //Authentication is diferent as it has no id
+                    //the other messages should come with an id so we can look in the hashtable for id type
+                    // maybe to add a field to anounce it is an AUTH PHASE
                     TungsteniteMessage::Text(data) => {
                         //just for authetication
                         to_client.send(Ok(Response::AuthInit(data))).await.unwrap();

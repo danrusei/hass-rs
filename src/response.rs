@@ -1,7 +1,7 @@
 use serde_derive::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub(crate) enum Response {
+pub enum Response {
     AuthInit(String),
     Close(String),
 }

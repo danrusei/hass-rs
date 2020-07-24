@@ -65,32 +65,40 @@ impl HassClient {
             access_token: self.token.to_owned(),
         });
 
-        // Send the auth command to gateway
-        self.gateway
-            .as_mut()
-            .expect("No gateway provided")
-            .to_gateway
-            .send(auth_req)
-            .await
-            .map_err(|_| HassError::ConnectionClosed)?;
+        let response = self.command(auth_req).await?; 
 
-        // Receive auth response event from the gatewat
-        let auth_response = self
-            .gateway
-            .as_mut()
-            .expect("No gateway provided")
-            .from_gateway
-            .next()
-            .await
-            .ok_or_else(|| HassError::ConnectionClosed)?;
+        // // Send the auth command to gateway
+        // self.gateway
+        //     .as_mut()
+        //     .expect("No gateway provided")
+        //     .to_gateway
+        //     .send(auth_req)
+        //     .await
+        //     .map_err(|_| HassError::ConnectionClosed)?;
 
-        let value = match auth_response {
-            Ok(Response::AuthInit(v)) => v,
-            _ => return Err(HassError::UnknownPayloadReceived.into()),
+        // // Receive auth response event from the gateway
+        // let auth_response = self
+        //     .gateway
+        //     .as_mut()
+        //     .expect("No gateway provided")
+        //     .from_gateway
+        //     .next()
+        //     .await
+        //     .ok_or_else(|| HassError::ConnectionClosed)?;
+
+        let value = match response {
+            Response::AuthInit(v) => v,
+            _ => return Err(HassError::UnknownPayloadReceived),
         };
 
-        dbg!(value);
-        Ok(())
+        //NOT WORKING as I have to search in string
+        match value.as_str() {
+            "auth_ok" => return Ok(()),
+            "auth_invalid" => return Err(HassError::AuthenticationFailed),
+            _ => { dbg!(value);
+                return Err(HassError::UnknownPayloadReceived)}
+        }
+
     }
 
     pub fn with_ssl(mut self) -> HassClient {
@@ -106,18 +114,32 @@ impl HassClient {
         )
     }
 
-    pub async fn command(&mut self, payload: &str) -> HassResult<()> {
-        let cmd = Command::Msg(10, payload.into());
+    pub async fn ping(&self) -> HassResult<()> {
+        todo!()
+    }
 
+    pub async fn command(&mut self, cmd: Command) -> HassResult<Response> {
+
+        // Send the auth command to gateway
         self.gateway
             .as_mut()
-            .expect("no connection to gateway ")
+            .expect("No gateway provided")
             .to_gateway
             .send(cmd)
             .await
-            .expect("Could not send the command");
+            .map_err(|_| HassError::ConnectionClosed)?;
 
-        Ok(())
+        // Receive auth response event from the gateway
+        let response = self
+            .gateway
+            .as_mut()
+            .expect("No gateway provided")
+            .from_gateway
+            .next()
+            .await
+            .ok_or_else(|| HassError::ConnectionClosed)?;
+        
+        response
     }
 }
 
