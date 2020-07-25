@@ -49,7 +49,7 @@ impl HassClient {
     }
 
     async fn authenticate(&mut self) -> HassResult<()> {
-        // Auth Request
+        // Auth Request from Gateway { "type": "auth_required"}
         let _ = self
             .gateway
             .as_mut()
@@ -59,44 +59,23 @@ impl HassClient {
             .await
             .ok_or_else(|| HassError::ConnectionClosed)?;
 
-        //Authenticate with auth {"type": "auth", "access_token": "XXXXX"}
+        //Authenticate with Command::AuthInit and payload {"type": "auth", "access_token": "XXXXX"}
         let auth_req = Command::AuthInit(Auth {
             msg_type: "auth".to_owned(),
             access_token: self.token.to_owned(),
         });
-
         let response = self.command(auth_req).await?; 
 
-        // // Send the auth command to gateway
-        // self.gateway
-        //     .as_mut()
-        //     .expect("No gateway provided")
-        //     .to_gateway
-        //     .send(auth_req)
-        //     .await
-        //     .map_err(|_| HassError::ConnectionClosed)?;
-
-        // // Receive auth response event from the gateway
-        // let auth_response = self
-        //     .gateway
-        //     .as_mut()
-        //     .expect("No gateway provided")
-        //     .from_gateway
-        //     .next()
-        //     .await
-        //     .ok_or_else(|| HassError::ConnectionClosed)?;
-
+        //Check if the authetication was succefully, should receive {"type": "auth_ok"}
         let value = match response {
             Response::AuthInit(v) => v,
             _ => return Err(HassError::UnknownPayloadReceived),
         };
 
-        //NOT WORKING as I have to search in string
         match value.msg_type.as_str() {
             "auth_ok" => return Ok(()),
             "auth_invalid" => return Err(HassError::AuthenticationFailed),
-            _ => { dbg!(value);
-                return Err(HassError::UnknownPayloadReceived)}
+            _ => return Err(HassError::UnknownPayloadReceived),
         }
 
     }
@@ -106,7 +85,7 @@ impl HassClient {
         self
     }
 
-    pub fn create_url(&self) -> String {
+    fn create_url(&self) -> String {
         let protocol = if self.opts.ssl { "wss" } else { "ws" };
         format!(
             "{}://{}:{}/api/websocket",
@@ -118,7 +97,7 @@ impl HassClient {
         todo!()
     }
 
-    pub async fn command(&mut self, cmd: Command) -> HassResult<Response> {
+    async fn command(&mut self, cmd: Command) -> HassResult<Response> {
 
         // Send the auth command to gateway
         self.gateway

@@ -1,9 +1,11 @@
 use serde_derive::Deserialize;
 
+//
+//There is no explicit tag identifying which variant the data contains. 
+//Serde will try to match the data against each variant in order and the first one that deserializes successfully is the one returned.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Response {
-    //below was String instead of AuthInit when auth worked --- TO Remove
     AuthInit(AuthInit),
     Pong(WSPong),
     Event(WSEvent),
@@ -19,14 +21,12 @@ pub struct AuthInit {
     pub(crate) ha_version: String,
 }
 
-
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSPong {
     pub(crate) id: u32,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
 }
-
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSEvent {
@@ -48,7 +48,6 @@ pub struct WSResult {
     // pub(crate) result: Option<>,
 }
 
-
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSResultError {
     pub(crate) id: u32,
@@ -63,28 +62,3 @@ pub(crate) struct ErrorCode {
     pub(crate) code: String,
     pub(crate) message: String,
 }
-
-  
-//   type WebSocketResponse =
-//     | WebSocketPongResponse
-//     | WebSocketEventResponse
-//     | WebSocketResultResponse
-//     | WebSocketResultErrorResponse;
-
-// #[derive(Debug, Deserialize)]
-// pub struct Response {
-//     pub sequence: Uuid,
-//     pub result: ResponseResult,
-//     pub status: ReponseStatus,
-// }
-
-// #[derive(Debug, Deserialize)]
-// pub struct ResponseResult {
-//     pub data: Value,
-// }
-
-// #[derive(Debug, Deserialize)]
-// pub struct ReponseStatus {
-//     pub code: i16,
-//     pub message: String,
-// }

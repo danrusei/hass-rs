@@ -16,11 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Sending a Ping command and waiting for Pong");
 
-    // println!("Sending a command to server")
-
-    // let payload = "Trying again";
-    // let result = client.command(payload).await?;
-    // println!("{:?}", result);
+    client.ping();
 
     Ok(())
 }

@@ -5,7 +5,6 @@ use serde::Serialize;
 pub enum Command {
     AuthInit(Auth),
     Ping(String),
-    Msg(u64, String),
     // maybe -> Heartbeat(Option<u64>),
     Close,
 }
