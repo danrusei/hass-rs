@@ -181,7 +181,11 @@ async fn receiver_loop(
                     // maybe to add a field to anounce it is an AUTH PHASE
                     TungsteniteMessage::Text(data) => {
                         //just for authetication
-                        to_client.send(Ok(Response::AuthInit(data))).await.unwrap();
+                        //TODO when deserialized how to know which option from the Enum was returned
+
+                       let payload: Result<Response, HassError> = serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
+                       to_client.send(payload).await.unwrap();
+                       
                     }
                     TungsteniteMessage::Ping(data) => {
                         todo!("receiver_loop, got a Tungst Text message")

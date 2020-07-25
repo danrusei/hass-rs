@@ -92,7 +92,7 @@ impl HassClient {
         };
 
         //NOT WORKING as I have to search in string
-        match value.as_str() {
+        match value.msg_type.as_str() {
             "auth_ok" => return Ok(()),
             "auth_invalid" => return Err(HassError::AuthenticationFailed),
             _ => { dbg!(value);
