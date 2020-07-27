@@ -43,7 +43,7 @@ impl WsConn {
         //Channels to receive the Response from the Websocket server and send it over to the Client
         let (to_client, from_gateway) = channel::<HassResult<Response>>(20);
 
-        let last_sequence = Arc::new(AtomicU64::default());
+        let last_sequence = Arc::new(AtomicU64::new(1));
         let last_sequence_clone_sender = Arc::clone(&last_sequence);
         let last_sequence_clone_receiver = Arc::clone(&last_sequence);
 
@@ -113,13 +113,16 @@ async fn sender_loop(
                         //         .expect("Failed to send error");
                         // };
                     }
-                    Command::Ping(ping) => {
-                        // Get the last sequence
-                        // let seq = match last_sequence.load(Ordering::Relaxed) {
-                        //         0 => None,
-                        //          v => Some(v),
-                        // };
+                    Command::Ping(mut ping) => {
+                        
+                        // Increase the last sequence and use the previous value in the request
+                         let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                                 0 => None,
+                                  v => Some(v),
+                         };
 
+                        ping.id = seq;
+                         
                         // Transform command to TungsteniteMessage
                         let cmd = Command::Ping(ping).to_tungstenite_message();
 
@@ -157,7 +160,6 @@ async fn sender_loop(
                     //     let mut guard = requests.lock().await;
                     //     guard.clear();
                     // }
-                    _ => todo!("sender_loop, other options"),
                 },
                 None => {}
             }
@@ -177,7 +179,7 @@ async fn receiver_loop(
             match stream.next().await {
                 Some(Err(error)) => match to_client.send(Err(HassError::from(&error))).await {
                     Ok(_r) => {}
-                    Err(e) => {}
+                    Err(_e) => {}
                 },
                 Some(Ok(item)) => match item {
                     //Authentication has no id compared with all the other messages(Response)
@@ -188,9 +190,6 @@ async fn receiver_loop(
                        let payload: Result<Response, HassError> = serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
                        to_client.send(payload).await.unwrap();
 
-                    }
-                    TungsteniteMessage::Ping(data) => {
-                        todo!("receiver_loop, I should not get this")
                     }
                     _ => {}
                 },

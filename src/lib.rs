@@ -10,7 +10,7 @@ mod response;
 mod runtime;
 mod wsconn;
 
-use crate::command::{Auth, Command};
+use crate::command::{Command, Auth, Ping};
 use crate::config::Config;
 use crate::errors::{HassError, HassResult};
 use crate::response::Response;
@@ -93,8 +93,22 @@ impl HassClient {
         )
     }
 
-    pub async fn ping(&self) -> HassResult<()> {
-        todo!()
+    pub async fn ping(&mut self) -> HassResult<String> {
+        //Send Ping command and expect Pong
+        let ping_req = Command::Ping(Ping {
+            id: Some(0),
+            msg_type: "ping".to_owned(),
+        });
+        let response = self.command(ping_req).await?; 
+
+        //Check the response, if the Pong was received
+         let pong = match response {
+            Response::Pong(v) => v,
+            Response::ResultError(err) => return Err(HassError::HassGateway(err)),
+            _ => return Err(HassError::UnknownPayloadReceived),
+        };
+
+        Ok(pong.msg_type)
     }
 
     async fn command(&mut self, cmd: Command) -> HassResult<Response> {

@@ -4,7 +4,7 @@ use serde::Serialize;
 #[derive(Debug)]
 pub enum Command {
     AuthInit(Auth),
-    Ping(String),
+    Ping(Ping),
     // maybe -> Heartbeat(Option<u64>),
     Close,
 }
@@ -23,7 +23,6 @@ impl Command {
                 TungsteniteMessage::Text(cmd_str)
             }
             Self::Close => todo!(),
-            _ => todo!(),
         }
     }
 }
@@ -33,4 +32,11 @@ pub struct Auth {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) access_token: String,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct Ping {
+    pub(crate) id: Option<u64>,
+    #[serde(rename = "type")]
+    pub(crate) msg_type: String,
 }

@@ -16,7 +16,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Sending a Ping command and waiting for Pong");
 
-    client.ping();
+    match client.ping().await? {
+        pong if pong == String::from("pong") => println!("Great the Hass Websocket Server responds to ping"),
+        _ => println!("I was expecting pong") 
+    }
 
     Ok(())
 }
