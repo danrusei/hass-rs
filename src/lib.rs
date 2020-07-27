@@ -16,7 +16,7 @@ use crate::errors::{HassError, HassResult};
 use crate::response::Response;
 use crate::wsconn::WsConn;
 
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use url;
 
 // Client defines client connection
@@ -64,7 +64,7 @@ impl HassClient {
             msg_type: "auth".to_owned(),
             access_token: self.token.to_owned(),
         });
-        let response = self.command(auth_req).await?; 
+        let response = self.gateway.as_mut().expect("No gateway found").command(auth_req).await?; 
 
         //Check if the authetication was succefully, should receive {"type": "auth_ok"}
         let value = match response {
@@ -99,7 +99,7 @@ impl HassClient {
             id: Some(0),
             msg_type: "ping".to_owned(),
         });
-        let response = self.command(ping_req).await?; 
+        let response = self.gateway.as_mut().expect("no gateway found").command(ping_req).await?; 
 
         //Check the response, if the Pong was received
          let pong = match response {
@@ -109,30 +109,6 @@ impl HassClient {
         };
 
         Ok(pong.msg_type)
-    }
-
-    async fn command(&mut self, cmd: Command) -> HassResult<Response> {
-
-        // Send the auth command to gateway
-        self.gateway
-            .as_mut()
-            .expect("No gateway provided")
-            .to_gateway
-            .send(cmd)
-            .await
-            .map_err(|_| HassError::ConnectionClosed)?;
-
-        // Receive auth response event from the gateway
-        let response = self
-            .gateway
-            .as_mut()
-            .expect("No gateway provided")
-            .from_gateway
-            .next()
-            .await
-            .ok_or_else(|| HassError::ConnectionClosed)?;
-        
-        response
     }
 }
 

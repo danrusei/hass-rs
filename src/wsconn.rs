@@ -33,7 +33,7 @@ pub struct WsConn {
 }
 
 impl WsConn {
-    pub async fn connect(url: url::Url) -> HassResult<WsConn> {
+    pub(crate) async fn connect(url: url::Url) -> HassResult<WsConn> {
         let wsclient = connect_async(url).await.expect("Can't connect to gateway");
         let (sink, stream) = wsclient.split();
 
@@ -69,6 +69,23 @@ impl WsConn {
             to_gateway,
             from_gateway,
         })
+    }
+
+    pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
+
+        // Send the auth command to gateway
+        self.to_gateway
+            .send(cmd)
+            .await
+            .map_err(|_| HassError::ConnectionClosed)?;
+
+        // Receive auth response event from the gateway
+        let response = self.from_gateway
+            .next()
+            .await
+            .ok_or_else(|| HassError::ConnectionClosed)?;
+        
+        response
     }
 }
 
@@ -177,10 +194,7 @@ async fn receiver_loop(
     task::spawn(async move {
         loop {
             match stream.next().await {
-                Some(Err(error)) => match to_client.send(Err(HassError::from(&error))).await {
-                    Ok(_r) => {}
-                    Err(_e) => {}
-                },
+                
                 Some(Ok(item)) => match item {
                     //Authentication has no id compared with all the other messages(Response)
                     TungsteniteMessage::Text(data) => {
@@ -188,10 +202,18 @@ async fn receiver_loop(
                         //There is no explicit tag identifying which variant the data contains. 
                         //Serde will try to match the data against each variant in order and the first one that deserializes successfully is the one returned.
                        let payload: Result<Response, HassError> = serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
+                       
+                       // do I need to check anything here before sending to client?
                        to_client.send(payload).await.unwrap();
 
                     }
                     _ => {}
+                },
+
+                Some(Err(error)) => match to_client.send(Err(HassError::from(&error))).await {
+                    //send the error to client ("unexpected message format, like a new error")
+                    Ok(_r) => {}
+                    Err(_e) => {}
                 },
                 _ => {} // Some(Err(error)) => {
                         //     let mut guard = requests.lock().await;
