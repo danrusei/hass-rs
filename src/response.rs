@@ -1,3 +1,5 @@
+use crate::events::HassEvent;
+
 use serde_derive::Deserialize;
 
 //
@@ -33,8 +35,7 @@ pub struct WSEvent {
     pub(crate) id: u32,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
-    // TODO define HassEvent
-//    pub(crate) event: HassEvent,
+    pub(crate) event: HassEvent,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -43,9 +44,8 @@ pub struct WSResult {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) success: bool,
-    //TODO, add an Option with Enum of structs for results
-    //like config and others ?, not sure if it is working
-    // pub(crate) result: Option<>,
+    //TODO, not sure if below is correct
+    pub(crate) result: Option<String>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

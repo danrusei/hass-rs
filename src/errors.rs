@@ -29,7 +29,7 @@ pub enum HassError {
     UnknownPayloadReceived,
 
     /// Returned error from the Hass Gateway
-    HassGateway(WSResultError), 
+    ReponseError(WSResultError), 
 
     /// others
     Generic(String),
@@ -46,7 +46,7 @@ impl fmt::Display for HassError {
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
             Self::ChannelSend(e) => write!(f, "Channel Send Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
-            Self::HassGateway(e) => write!(f, "The error code reveiced is {} and the error message {}", e.error.code, e.error.message),
+            Self::ReponseError(e) => write!(f, "The error code reveiced is {} and the error message {}", e.error.code, e.error.message),
             Self::Generic(detail) => write!(f, "Generic Error: {}", detail),
         }
     }

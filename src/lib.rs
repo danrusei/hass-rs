@@ -9,9 +9,10 @@ mod errors;
 mod response;
 mod runtime;
 mod wsconn;
+mod events;
 
 use crate::command::{Command, Auth, Ping};
-use crate::config::Config;
+use crate::config::{Config, ConnectionOptions};
 use crate::errors::{HassError, HassResult};
 use crate::response::Response;
 use crate::wsconn::WsConn;
@@ -20,7 +21,6 @@ use futures::StreamExt;
 use url;
 
 // Client defines client connection
-#[derive(Debug)]
 pub struct HassClient {
     pub(crate) opts: ConnectionOptions,
     pub(crate) token: String,
@@ -104,27 +104,21 @@ impl HassClient {
         //Check the response, if the Pong was received
          let pong = match response {
             Response::Pong(v) => v,
-            Response::ResultError(err) => return Err(HassError::HassGateway(err)),
+            Response::ResultError(err) => return Err(HassError::ReponseError(err)),
             _ => return Err(HassError::UnknownPayloadReceived),
         };
 
         Ok(pong.msg_type)
     }
-}
 
-#[derive(Debug)]
-pub struct ConnectionOptions {
-    pub(crate) host: String,
-    pub(crate) port: u16,
-    pub(crate) ssl: bool,
-}
-
-impl Default for ConnectionOptions {
-    fn default() -> ConnectionOptions {
-        ConnectionOptions {
-            host: String::from("localhost"),
-            port: 8123,
-            ssl: false,
+    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F )
+    where
+        F: FnOnce() + Send + 'static,
+        {
+            match self.gateway.as_mut().expect("no gateway found").subscribe_message(event_name, callback).await {
+                Ok(v) => todo!("subscribe_event, check if it is OK or NOT OK"),
+                Err(err) => todo!("handle the error, or send back feadback to client")
+            };
         }
-    }
 }
+

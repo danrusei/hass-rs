@@ -13,7 +13,7 @@ cargo run --example example_1
 - [ ] Automatic reconnection
 - [x] Authenticate using long-lived access tokens
 - [ ] Authenticate using OAuth2
-- [ ] Ping - Pong
+- [x] Ping - Pong
 - [ ] Fetch Commands
     - [ ] Fetch State
     - [ ] Fetch Config

@@ -1,8 +1,9 @@
-use crate::command::Command;
+use crate::command::{Command, Subscribe};
 use crate::errors::{HassError, HassResult};
 use crate::response::Response;
 use crate::runtime::{connect_async, task, WebSocket};
 
+use std::collections::HashMap;
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use futures::channel::mpsc::{channel, Receiver, Sender};
 use futures::{
@@ -16,7 +17,6 @@ use std::sync::{
 };
 use url;
 
-#[derive(Debug)]
 pub struct WsConn {
     //message sequence required by the Websocket server
     last_sequence: Arc<AtomicU64>,
@@ -27,6 +27,9 @@ pub struct WsConn {
     //Gateway --> Client (receive "Response" msg from the Gateway)
     pub(crate) from_gateway: Receiver<HassResult<Response>>,
 
+    //Register all the events to be listen and its callback
+    //TODO intial form, but I can send a result like Box<dyn Fn(String) -> BoxFuture<'static, EventResult>
+    pub(crate) event_listeners: HashMap<String, Box<dyn FnOnce() + Send>>,
     //TODO
     // I may have to create an hashmap for Commands and another one for Events
     // so when I receive an response I can search both hashmap and know the type of event to json Deserialize 
@@ -68,6 +71,7 @@ impl WsConn {
             last_sequence,
             to_gateway,
             from_gateway,
+            event_listeners: HashMap::new(),
         })
     }
 
@@ -87,6 +91,41 @@ impl WsConn {
         
         response
     }
+
+    pub(crate) async fn subscribe_message<F>(&mut self, event_name: &str, callback: F ) -> HassResult<String> 
+    where
+        F: FnOnce() + Send + 'static,
+        {
+            
+
+            //create the Event Subscribe Command
+            let cmd = Command::SubscribeEvent(Subscribe{
+                id: None,
+                msg_type: "subscribe_events".to_owned(),
+                event_type: event_name.to_owned(),
+                
+            });
+
+            //send command to subscribe to specific event
+            let response = self.command(cmd).await.unwrap();
+
+            //this function will be executed on the Event received from Stream
+            //Check the response, if the Pong was received
+         match response {
+            Response::Result(v) => {
+                // if the response is with suceess then the callback is registered to Event
+                if v.success == true {
+                    self.event_listeners.insert(event_name.to_owned(), Box::new(callback));
+                    return Ok("Ok".to_owned())
+                }
+
+                return Ok("NOT OK".to_owned())
+            },
+            Response::ResultError(err) =>  return Err(HassError::ReponseError(err)),
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
+
+        }
 }
 
 async fn sender_loop(
@@ -158,8 +197,9 @@ async fn sender_loop(
                         //         .await
                         //         .expect("Failed to send error");
                         // };
-
-
+                    }
+                    Command::SubscribeEvent(subscribe) => {
+                        todo!("send the request")
                     }
                     // Command::Msg(msg) => {
                     //     let mut guard = requests.lock().await;

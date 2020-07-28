@@ -5,6 +5,7 @@ use serde::Serialize;
 pub enum Command {
     AuthInit(Auth),
     Ping(Ping),
+    SubscribeEvent(Subscribe),
     // maybe -> Heartbeat(Option<u64>),
     Close,
 }
@@ -20,6 +21,10 @@ impl Command {
             }
             Self::Ping(ping) => {
                 let cmd_str = serde_json::to_string(&ping).unwrap();
+                TungsteniteMessage::Text(cmd_str)
+            }
+            Self::SubscribeEvent(subscribe) => {
+                let cmd_str = serde_json::to_string(&subscribe).unwrap();
                 TungsteniteMessage::Text(cmd_str)
             }
             Self::Close => todo!(),
@@ -39,4 +44,13 @@ pub struct Ping {
     pub(crate) id: Option<u64>,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
+}
+
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct Subscribe {
+    pub(crate) id: Option<u64>,
+    #[serde(rename = "type")]
+    pub(crate) msg_type: String,
+    pub(crate) event_type: String
 }

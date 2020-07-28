@@ -21,5 +21,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => println!("I was expecting pong") 
     }
 
+    println!("Subscribe to an Event");
+
+    client.subscribe_event("state_changed", || {
+        println!("Closure is executed when the event received")
+    }).await;
+
+    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+
     Ok(())
 }
