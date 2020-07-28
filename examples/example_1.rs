@@ -14,12 +14,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     client.connect().await?;
     println!("WebSocket connection and authethication works");
 
-    println!("Sending a Ping command and waiting for Pong");
+    // println!("Sending a Ping command and waiting for Pong");
 
-    match client.ping().await? {
-        pong if pong == String::from("pong") => println!("Great the Hass Websocket Server responds to ping"),
-        _ => println!("I was expecting pong") 
-    }
+    // match client.ping().await? {
+    //     pong if pong == String::from("pong") => println!("Great the Hass Websocket Server responds to ping"),
+    //     _ => println!("I was expecting pong") 
+    // }
+
+    // async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
     println!("Subscribe to an Event");
 
@@ -27,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Closure is executed when the event received")
     }).await;
 
-    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+    async_std::task::sleep(std::time::Duration::from_secs(200)).await;
 
     Ok(())
 }

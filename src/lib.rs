@@ -117,7 +117,9 @@ impl HassClient {
         {
             match self.gateway.as_mut().expect("no gateway found").subscribe_message(event_name, callback).await {
                 Ok(v) => todo!("subscribe_event, check if it is OK or NOT OK"),
-                Err(err) => todo!("handle the error, or send back feadback to client")
+                Err(err) => {
+                    todo!("handle the error, or send back feadback to client")
+                }
             };
         }
 }

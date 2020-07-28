@@ -110,7 +110,7 @@ impl WsConn {
             let response = self.command(cmd).await.unwrap();
 
             //this function will be executed on the Event received from Stream
-            //Check the response, if the Pong was received
+            //Check the response
          match response {
             Response::Result(v) => {
                 // if the response is with suceess then the callback is registered to Event
@@ -124,7 +124,6 @@ impl WsConn {
             Response::ResultError(err) =>  return Err(HassError::ReponseError(err)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
-
         }
 }
 
@@ -198,8 +197,25 @@ async fn sender_loop(
                         //         .expect("Failed to send error");
                         // };
                     }
-                    Command::SubscribeEvent(subscribe) => {
-                        todo!("send the request")
+                    Command::SubscribeEvent(mut subscribe) => {
+                         
+                        // Increase the last sequence and use the previous value in the request
+                         let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                            0 => None,
+                             v => Some(v),
+                    };
+
+                        subscribe.id = seq;
+
+                        // Transform command to TungsteniteMessage
+                        let cmd = Command::SubscribeEvent(subscribe).to_tungstenite_message();
+
+                         // Send command to gateway
+                        // NOT GOOD as it is not returned
+                        sink.send(cmd)
+                            .await
+                            .map_err(|_| HassError::ConnectionClosed)
+                            .unwrap();
                     }
                     // Command::Msg(msg) => {
                     //     let mut guard = requests.lock().await;

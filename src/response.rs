@@ -2,16 +2,16 @@ use crate::events::HassEvent;
 
 use serde_derive::Deserialize;
 
-//
+//TODO!!!!! -- this is wrong due to mismatches between types, when data is deserialize on gateway-recieve
 //There is no explicit tag identifying which variant the data contains. 
 //Serde will try to match the data against each variant in order and the first one that deserializes successfully is the one returned.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Response {
     AuthInit(AuthInit),
+    Result(WSResult),
     Pong(WSPong),
     Event(WSEvent),
-    Result(WSResult),
     ResultError(WSResultError),
     Close(String),
 }
