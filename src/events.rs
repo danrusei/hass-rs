@@ -1,4 +1,5 @@
 use serde_derive::Deserialize;
+use serde_json::Value;
 
 //TODO -- need to validate the Event Structure
 #[derive(Debug, Deserialize, PartialEq)]
@@ -7,8 +8,7 @@ pub struct HassEvent {
     pub(crate) time_fired: String,
     pub(crate) context: Context,
     pub(crate) event_type: String,
-    //TODO it is not string, there are alot of values inside, specific to event
-    pub(crate) data: String,
+    pub(crate) data: Option<Value>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

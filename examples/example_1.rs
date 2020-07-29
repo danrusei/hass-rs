@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .await;
 
-    async_std::task::sleep(std::time::Duration::from_secs(200)).await;
+    async_std::task::sleep(std::time::Duration::from_secs(30)).await;
 
     Ok(())
 }

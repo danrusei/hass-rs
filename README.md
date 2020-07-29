@@ -18,8 +18,8 @@ cargo run --example example_1
     - [ ] Fetch State
     - [ ] Fetch Config
     - [ ] Fetch Services
-- [ ] Subscribe Events
-    - [ ] Events
+- [x] Subscribe
+    - [x] Events
     - [ ] Config
     - [ ] Services
 - [ ] Call a service

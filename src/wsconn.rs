@@ -31,8 +31,8 @@ pub struct WsConn {
     //Register all the events to be listen and its callback
     //TODO intial form, but I can send a result like Box<dyn Fn(String) -> BoxFuture<'static, EventResult>
     pub(crate) event_listeners: HashMap<String, Box<dyn FnOnce() + Send>>,
-    //TODO
-    // I may have to create an hashmap for Commands and another one for Events
+    
+    //TODO hashmap for Commands, is it needed ?
     // so when I receive an response I can search both hashmap and know the type of event to json Deserialize
 }
 
@@ -225,7 +225,11 @@ async fn receiver_loop(
                             .map_err(|_| HassError::UnknownPayloadReceived);
 
                         // do I need to check anything here before sending to client?
-                        //TODO where the event is going?
+                        //TODO match on payload Some(x) if x.type == alert
+                        //if it is alert verify if we are subscribed to this
+                        //if not subscribe, send unsubscribe for that event
+                        // if subscribed than execute the callback
+                        //else send the response default to user, as below.
                         to_client.send(payload).await.unwrap();
                     }
                     _ => {}
