@@ -1,23 +1,41 @@
 use crate::events::HassEvent;
 
 use serde_derive::Deserialize;
+use serde_json::Value;
 
-//TODO!!!!! -- this is wrong due to mismatches between types, when data is deserialize on gateway-recieve
-//There is no explicit tag identifying which variant the data contains. 
-//Serde will try to match the data against each variant in order and the first one that deserializes successfully is the one returned.
+//The tag identifying which variant we are dealing with is inside of the content, 
+// next to any other fields of the variant.
 #[derive(Debug, Deserialize)]
-#[serde(untagged)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum Response {
-    AuthInit(AuthInit),
+    AuthRequired(AuthRequired),
+    AuthOk(AuthOk),
+    AuthInvalid(AuthInvalid),
     Result(WSResult),
     Pong(WSPong),
     Event(WSEvent),
-    ResultError(WSResultError),
     Close(String),
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct AuthInit {
+#[serde(rename_all = "snake_case")]
+pub struct AuthRequired {
+  //  #[serde(rename = "type")]
+  //  pub(crate) msg_type: String,
+    pub(crate) ha_version: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub struct AuthOk {
+  //  #[serde(rename = "type")]
+  //  pub(crate) msg_type: String,
+    pub(crate) ha_version: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub struct AuthInvalid {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) ha_version: String,
@@ -26,8 +44,8 @@ pub struct AuthInit {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSPong {
     pub(crate) id: u32,
-    #[serde(rename = "type")]
-    pub(crate) msg_type: String,
+    // #[serde(rename = "type")]
+    // pub(crate) msg_type: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -41,20 +59,11 @@ pub struct WSEvent {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSResult {
     pub(crate) id: u32,
-    #[serde(rename = "type")]
-    pub(crate) msg_type: String,
+    // #[serde(rename = "type")]
+    // pub(crate) msg_type: String,
     pub(crate) success: bool,
-    //TODO, not sure if below is correct
-    pub(crate) result: Option<String>,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct WSResultError {
-    pub(crate) id: u32,
-    #[serde(rename = "type")]
-    pub(crate) msg_type: String,
-    pub(crate) success: bool,
-    pub(crate) error: ErrorCode,
+    pub(crate) result: Option<Value>,
+    pub(crate) error: Option<ErrorCode>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

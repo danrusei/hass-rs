@@ -6,12 +6,12 @@
 mod command;
 pub mod config;
 mod errors;
+mod events;
 mod response;
 mod runtime;
 mod wsconn;
-mod events;
 
-use crate::command::{Command, Auth, Ping};
+use crate::command::{Auth, Command, Ping};
 use crate::config::{Config, ConnectionOptions};
 use crate::errors::{HassError, HassResult};
 use crate::response::Response;
@@ -64,20 +64,25 @@ impl HassClient {
             msg_type: "auth".to_owned(),
             access_token: self.token.to_owned(),
         });
-        let response = self.gateway.as_mut().expect("No gateway found").command(auth_req).await?; 
+        let response = self
+            .gateway
+            .as_mut()
+            .expect("No gateway found")
+            .command(auth_req)
+            .await?;
+        
 
         //Check if the authetication was succefully, should receive {"type": "auth_ok"}
-        let value = match response {
-            Response::AuthInit(v) => v,
-            _ => return Err(HassError::UnknownPayloadReceived),
-        };
-
-        match value.msg_type.as_str() {
-            "auth_ok" => return Ok(()),
-            "auth_invalid" => return Err(HassError::AuthenticationFailed),
+        match response {
+            Response::AuthOk(_) => Ok(()),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
 
+        // match value.msg_type.as_str() {
+        //     "auth_ok" => return Ok(()),
+        //     "auth_invalid" => return Err(HassError::AuthenticationFailed),
+        //     _ => return Err(HassError::UnknownPayloadReceived),
+        // }
     }
 
     pub fn with_ssl(mut self) -> HassClient {
@@ -99,28 +104,35 @@ impl HassClient {
             id: Some(0),
             msg_type: "ping".to_owned(),
         });
-        let response = self.gateway.as_mut().expect("no gateway found").command(ping_req).await?; 
+        let response = self
+            .gateway
+            .as_mut()
+            .expect("no gateway found")
+            .command(ping_req)
+            .await?;
 
         //Check the response, if the Pong was received
-         let pong = match response {
-            Response::Pong(v) => v,
-            Response::ResultError(err) => return Err(HassError::ReponseError(err)),
+         match response {
+            Response::Pong(_v) => Ok("pong".to_owned()),
+            Response::Result(err) => return Err(HassError::ReponseError(err)),
             _ => return Err(HassError::UnknownPayloadReceived),
-        };
-
-        Ok(pong.msg_type)
+        }
+        
     }
 
-    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F )
+    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F)
     where
         F: FnOnce() + Send + 'static,
+    {
+        match self
+            .gateway
+            .as_mut()
+            .expect("no gateway found")
+            .subscribe_message(event_name, callback)
+            .await
         {
-            match self.gateway.as_mut().expect("no gateway found").subscribe_message(event_name, callback).await {
-                Ok(v) => todo!("subscribe_event, check if it is OK or NOT OK"),
-                Err(err) => {
-                    todo!("handle the error, or send back feadback to client")
-                }
-            };
-        }
+            Ok(v) => todo!("subscribe_event, check if it is OK or NOT OK"),
+            Err(err) => todo!("handle the error, or send back feadback to client"),
+        };
+    }
 }
-

@@ -19,6 +19,8 @@ async-tungstenite = "0.7"
 futures = "0.3"
 uuid = { version ="0.8", features = ["serde", "v4"]}
 url = "2.1"
+log = "0.4"
+env_logger = "0.7"
 
 tokio = { version = "0.2", optional = true }
 tokio-tls = { version = "0.3", optional = true }

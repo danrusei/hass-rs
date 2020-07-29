@@ -1,5 +1,5 @@
 //! # Hass error types
-use crate::response::WSResultError;
+use crate::response::WSResult;
 
 use async_tungstenite::tungstenite;
 use futures::channel::mpsc::SendError;
@@ -29,7 +29,7 @@ pub enum HassError {
     UnknownPayloadReceived,
 
     /// Returned error from the Hass Gateway
-    ReponseError(WSResultError), 
+    ReponseError(WSResult),
 
     /// others
     Generic(String),
@@ -46,7 +46,11 @@ impl fmt::Display for HassError {
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
             Self::ChannelSend(e) => write!(f, "Channel Send Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
-            Self::ReponseError(e) => write!(f, "The error code reveiced is {} and the error message {}", e.error.code, e.error.message),
+            Self::ReponseError(e) => write!(
+                f,
+                "The error code reveiced is {} and the error message {}",
+                e.error.as_ref().unwrap().code, e.error.as_ref().unwrap().message
+            ),
             Self::Generic(detail) => write!(f, "Generic Error: {}", detail),
         }
     }

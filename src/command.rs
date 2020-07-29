@@ -46,11 +46,10 @@ pub struct Ping {
     pub(crate) msg_type: String,
 }
 
-
 #[derive(Debug, Serialize, PartialEq)]
 pub struct Subscribe {
     pub(crate) id: Option<u64>,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
-    pub(crate) event_type: String
+    pub(crate) event_type: String,
 }

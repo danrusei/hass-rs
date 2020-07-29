@@ -3,13 +3,14 @@ use crate::errors::{HassError, HassResult};
 use crate::response::Response;
 use crate::runtime::{connect_async, task, WebSocket};
 
-use std::collections::HashMap;
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use futures::channel::mpsc::{channel, Receiver, Sender};
 use futures::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
+use log::info;
+use std::collections::HashMap;
 
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -32,7 +33,7 @@ pub struct WsConn {
     pub(crate) event_listeners: HashMap<String, Box<dyn FnOnce() + Send>>,
     //TODO
     // I may have to create an hashmap for Commands and another one for Events
-    // so when I receive an response I can search both hashmap and know the type of event to json Deserialize 
+    // so when I receive an response I can search both hashmap and know the type of event to json Deserialize
 }
 
 impl WsConn {
@@ -76,7 +77,6 @@ impl WsConn {
     }
 
     pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
-
         // Send the auth command to gateway
         self.to_gateway
             .send(cmd)
@@ -84,47 +84,50 @@ impl WsConn {
             .map_err(|_| HassError::ConnectionClosed)?;
 
         // Receive auth response event from the gateway
-        let response = self.from_gateway
+        let response = self
+            .from_gateway
             .next()
             .await
             .ok_or_else(|| HassError::ConnectionClosed)?;
-        
+
         response
     }
 
-    pub(crate) async fn subscribe_message<F>(&mut self, event_name: &str, callback: F ) -> HassResult<String> 
+    pub(crate) async fn subscribe_message<F>(
+        &mut self,
+        event_name: &str,
+        callback: F,
+    ) -> HassResult<String>
     where
         F: FnOnce() + Send + 'static,
-        {
-            
+    {
+        //create the Event Subscribe Command
+        let cmd = Command::SubscribeEvent(Subscribe {
+            id: None,
+            msg_type: "subscribe_events".to_owned(),
+            event_type: event_name.to_owned(),
+        });
 
-            //create the Event Subscribe Command
-            let cmd = Command::SubscribeEvent(Subscribe{
-                id: None,
-                msg_type: "subscribe_events".to_owned(),
-                event_type: event_name.to_owned(),
-                
-            });
+        //send command to subscribe to specific event
+        let response = self.command(cmd).await.unwrap();
 
-            //send command to subscribe to specific event
-            let response = self.command(cmd).await.unwrap();
-
-            //this function will be executed on the Event received from Stream
-            //Check the response
-         match response {
-            Response::Result(v) => {
+        //this function will be executed on the Event received from Stream
+        //Check the response
+        match response {
+            Response::Result(v) if v.success == true => {
                 // if the response is with suceess then the callback is registered to Event
                 if v.success == true {
-                    self.event_listeners.insert(event_name.to_owned(), Box::new(callback));
-                    return Ok("Ok".to_owned())
+                    self.event_listeners
+                        .insert(event_name.to_owned(), Box::new(callback));
+                    return Ok("Ok".to_owned());
                 }
 
-                return Ok("NOT OK".to_owned())
-            },
-            Response::ResultError(err) =>  return Err(HassError::ReponseError(err)),
+                return Ok("NOT OK".to_owned());
+            }
+            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
-        }
+    }
 }
 
 async fn sender_loop(
@@ -169,19 +172,18 @@ async fn sender_loop(
                         // };
                     }
                     Command::Ping(mut ping) => {
-                        
                         // Increase the last sequence and use the previous value in the request
-                         let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                                 0 => None,
-                                  v => Some(v),
-                         };
+                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                            0 => None,
+                            v => Some(v),
+                        };
 
                         ping.id = seq;
-                         
+
                         // Transform command to TungsteniteMessage
                         let cmd = Command::Ping(ping).to_tungstenite_message();
 
-                         // Send command to gateway
+                        // Send command to gateway
                         // NOT GOOD as it is not returned
                         sink.send(cmd)
                             .await
@@ -198,41 +200,39 @@ async fn sender_loop(
                         // };
                     }
                     Command::SubscribeEvent(mut subscribe) => {
-                         
                         // Increase the last sequence and use the previous value in the request
-                         let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
                             0 => None,
-                             v => Some(v),
-                    };
+                            v => Some(v),
+                        };
 
                         subscribe.id = seq;
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::SubscribeEvent(subscribe).to_tungstenite_message();
 
-                         // Send command to gateway
+                        // Send command to gateway
                         // NOT GOOD as it is not returned
                         sink.send(cmd)
                             .await
                             .map_err(|_| HassError::ConnectionClosed)
                             .unwrap();
-                    }
-                    // Command::Msg(msg) => {
-                    //     let mut guard = requests.lock().await;
-                    //     guard.insert(msg.0, msg.1);
-                    //     if let Err(e) = sink.send(TungsteniteMessage::Binary(msg.2)).await {
-                    //         let mut sender = guard.remove(&msg.0).unwrap();
-                    //         sender
-                    //             .send(Err(HassError::from(e)))
-                    //             .await
-                    //             .expect("Failed to send error");
-                    //     }
-                    //     drop(guard);
-                    // }
-                    // Command::Shutdown => {
-                    //     let mut guard = requests.lock().await;
-                    //     guard.clear();
-                    // }
+                    } // Command::Msg(msg) => {
+                      //     let mut guard = requests.lock().await;
+                      //     guard.insert(msg.0, msg.1);
+                      //     if let Err(e) = sink.send(TungsteniteMessage::Binary(msg.2)).await {
+                      //         let mut sender = guard.remove(&msg.0).unwrap();
+                      //         sender
+                      //             .send(Err(HassError::from(e)))
+                      //             .await
+                      //             .expect("Failed to send error");
+                      //     }
+                      //     drop(guard);
+                      // }
+                      // Command::Shutdown => {
+                      //     let mut guard = requests.lock().await;
+                      //     guard.clear();
+                      // }
                 },
                 None => {}
             }
@@ -250,18 +250,18 @@ async fn receiver_loop(
     task::spawn(async move {
         loop {
             match stream.next().await {
-                
                 Some(Ok(item)) => match item {
                     //Authentication has no id compared with all the other messages(Response)
                     TungsteniteMessage::Text(data) => {
+                        info!("{}", data);
 
-                        //There is no explicit tag identifying which variant the data contains. 
+                        //There is no explicit tag identifying which variant the data contains.
                         //Serde will try to match the data against each variant in order and the first one that deserializes successfully is the one returned.
-                       let payload: Result<Response, HassError> = serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
-                       
-                       // do I need to check anything here before sending to client?
-                       to_client.send(payload).await.unwrap();
+                        let payload: Result<Response, HassError> = serde_json::from_str(&data)
+                            .map_err(|_| HassError::UnknownPayloadReceived);
 
+                        // do I need to check anything here before sending to client?
+                        to_client.send(payload).await.unwrap();
                     }
                     _ => {}
                 },
