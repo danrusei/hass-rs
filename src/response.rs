@@ -3,7 +3,7 @@ use crate::events::HassEvent;
 use serde_derive::Deserialize;
 use serde_json::Value;
 
-//The tag identifying which variant we are dealing with is inside of the content, 
+//The tag identifying which variant we are dealing with is inside of the content,
 // next to any other fields of the variant.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -20,16 +20,16 @@ pub enum Response {
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub struct AuthRequired {
-  //  #[serde(rename = "type")]
-  //  pub(crate) msg_type: String,
+    //  #[serde(rename = "type")]
+    //  pub(crate) msg_type: String,
     pub(crate) ha_version: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub struct AuthOk {
-  //  #[serde(rename = "type")]
-  //  pub(crate) msg_type: String,
+    //  #[serde(rename = "type")]
+    //  pub(crate) msg_type: String,
     pub(crate) ha_version: String,
 }
 

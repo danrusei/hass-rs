@@ -20,8 +20,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Sending a Ping command and waiting for Pong");
 
     match client.ping().await? {
-        pong if pong == String::from("pong") => println!("Great the Hass Websocket Server responds to ping"),
-        _ => println!("I was expecting pong")
+        pong if pong == String::from("pong") => {
+            println!("Great the Hass Websocket Server responds to ping")
+        }
+        _ => println!("I was expecting pong"),
     }
 
     async_std::task::sleep(std::time::Duration::from_secs(2)).await;

@@ -49,7 +49,8 @@ impl fmt::Display for HassError {
             Self::ReponseError(e) => write!(
                 f,
                 "The error code reveiced is {} and the error message {}",
-                e.error.as_ref().unwrap().code, e.error.as_ref().unwrap().message
+                e.error.as_ref().unwrap().code,
+                e.error.as_ref().unwrap().message
             ),
             Self::Generic(detail) => write!(f, "Generic Error: {}", detail),
         }

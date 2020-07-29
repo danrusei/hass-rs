@@ -115,14 +115,9 @@ impl WsConn {
         //Check the response
         match response {
             Response::Result(v) if v.success == true => {
-                // if the response is with suceess then the callback is registered to Event
-                if v.success == true {
-                    self.event_listeners
-                        .insert(event_name.to_owned(), Box::new(callback));
-                    return Ok("Ok".to_owned());
-                }
-
-                return Ok("NOT OK".to_owned());
+                self.event_listeners
+                    .insert(event_name.to_owned(), Box::new(callback));
+                return Ok("Ok".to_owned());
             }
             Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
             _ => return Err(HassError::UnknownPayloadReceived),
@@ -146,12 +141,6 @@ async fn sender_loop(
                             .map_err(|_| HassError::ConnectionClosed);
                     }
                     Command::AuthInit(auth) => {
-                        // Get the last sequence
-                        // let seq = match last_sequence.load(Ordering::Relaxed) {
-                        //         0 => None,
-                        //          v => Some(v),
-                        // };
-
                         // Transform command to TungsteniteMessage
                         let cmd = Command::AuthInit(auth).to_tungstenite_message();
 
@@ -184,20 +173,11 @@ async fn sender_loop(
                         let cmd = Command::Ping(ping).to_tungstenite_message();
 
                         // Send command to gateway
-                        // NOT GOOD as it is not returned
+                        // NOT GOOD as it is not returned, see above
                         sink.send(cmd)
                             .await
                             .map_err(|_| HassError::ConnectionClosed)
                             .unwrap();
-
-                        // Send command to gateway
-                        // if let Err(e) = sink.send(TungsteniteMessage::Text(item)).await {
-                        //     let mut sender = guard.remove(&msg.0).unwrap();
-                        //     sender
-                        //         .send(Err(HassError::from(e)))
-                        //         .await
-                        //         .expect("Failed to send error");
-                        // };
                     }
                     Command::SubscribeEvent(mut subscribe) => {
                         // Increase the last sequence and use the previous value in the request
@@ -212,27 +192,12 @@ async fn sender_loop(
                         let cmd = Command::SubscribeEvent(subscribe).to_tungstenite_message();
 
                         // Send command to gateway
-                        // NOT GOOD as it is not returned
+                        // NOT GOOD as it is not returned, see above
                         sink.send(cmd)
                             .await
                             .map_err(|_| HassError::ConnectionClosed)
                             .unwrap();
-                    } // Command::Msg(msg) => {
-                      //     let mut guard = requests.lock().await;
-                      //     guard.insert(msg.0, msg.1);
-                      //     if let Err(e) = sink.send(TungsteniteMessage::Binary(msg.2)).await {
-                      //         let mut sender = guard.remove(&msg.0).unwrap();
-                      //         sender
-                      //             .send(Err(HassError::from(e)))
-                      //             .await
-                      //             .expect("Failed to send error");
-                      //     }
-                      //     drop(guard);
-                      // }
-                      // Command::Shutdown => {
-                      //     let mut guard = requests.lock().await;
-                      //     guard.clear();
-                      // }
+                    }
                 },
                 None => {}
             }
@@ -251,16 +216,16 @@ async fn receiver_loop(
         loop {
             match stream.next().await {
                 Some(Ok(item)) => match item {
-                    //Authentication has no id compared with all the other messages(Response)
                     TungsteniteMessage::Text(data) => {
                         info!("{}", data);
 
-                        //There is no explicit tag identifying which variant the data contains.
-                        //Serde will try to match the data against each variant in order and the first one that deserializes successfully is the one returned.
+                        //Serde: The tag identifying which variant we are dealing with is now inside of the content,
+                        // next to any other fields of the variant
                         let payload: Result<Response, HassError> = serde_json::from_str(&data)
                             .map_err(|_| HassError::UnknownPayloadReceived);
 
                         // do I need to check anything here before sending to client?
+                        //TODO where the event is going?
                         to_client.send(payload).await.unwrap();
                     }
                     _ => {}
@@ -271,42 +236,7 @@ async fn receiver_loop(
                     Ok(_r) => {}
                     Err(_e) => {}
                 },
-                _ => {} // Some(Err(error)) => {
-                        //     let mut guard = requests.lock().await;
-                        //     for s in guard.values_mut() {
-                        //         match s.send(Err(HassError::from(&error))).await {
-                        //             Ok(_r) => {}
-                        //             Err(_e) => {}
-                        //         }
-                        //     }
-                        //     guard.clear();
-                        // }
-                        // Some(Ok(item)) => match item {
-                        //     TungsteniteMessage::Text(data) => {
-                        //         let response: Response = serde_json::from_str(&data)
-                        //             .map_err(|_| HassError::UnknownPayloadReceived)
-                        //             .unwrap();
-                        //         let mut guard = requests.lock().await;
-                        //         if response.status.code != 206 {
-                        //             let item = guard.remove(&response.sequence);
-                        //             drop(guard);
-                        //             if let Some(mut s) = item {
-                        //                 match s.send(Ok(response)).await {
-                        //                     Ok(_r) => {}
-                        //                     Err(_e) => {}
-                        //                 };
-                        //             }
-                        //         } else {
-                        //             let item = guard.get_mut(&response.sequence);
-                        //             if let Some(s) = item {
-                        //                 match s.send(Ok(response)).await {
-                        //                     Ok(_r) => {}
-                        //                     Err(_e) => {}
-                        //                 };
-                        //             }
-                        //             drop(guard);
-                        //         }
-                        //     }
+                None => {}
             }
         }
     });

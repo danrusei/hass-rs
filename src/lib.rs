@@ -70,7 +70,6 @@ impl HassClient {
             .expect("No gateway found")
             .command(auth_req)
             .await?;
-        
 
         //Check if the authetication was succefully, should receive {"type": "auth_ok"}
         match response {
@@ -112,12 +111,11 @@ impl HassClient {
             .await?;
 
         //Check the response, if the Pong was received
-         match response {
+        match response {
             Response::Pong(_v) => Ok("pong".to_owned()),
             Response::Result(err) => return Err(HassError::ReponseError(err)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
-        
     }
 
     pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F)
@@ -131,8 +129,11 @@ impl HassClient {
             .subscribe_message(event_name, callback)
             .await
         {
-            Ok(v) => todo!("subscribe_event, check if it is OK or NOT OK"),
-            Err(err) => todo!("handle the error, or send back feadback to client"),
+            Ok(v) => println!("Got {} on the event {} subscription request", v, event_name),
+            Err(err) => println!(
+                "Got this error {} while trying to subscribe to {}",
+                err, event_name
+            ),
         };
     }
 }
