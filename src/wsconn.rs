@@ -6,6 +6,7 @@ use crate::runtime::{connect_async, task, WebSocket};
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use futures::channel::mpsc::{channel, Receiver, Sender};
 use futures::{
+    lock::Mutex,
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
@@ -30,7 +31,7 @@ pub struct WsConn {
 
     //Register all the events to be listen and its callback
     //TODO intial form, but I can send a result like Box<dyn Fn(String) -> BoxFuture<'static, EventResult>
-    pub(crate) event_listeners: HashMap<u64, Box<dyn FnOnce() + Send>>,
+    pub(crate) event_listeners: Arc<Mutex<HashMap<u64, Box<dyn FnOnce() + Send>>>>,
     //TODO hashmap for Commands, is it needed ?
     // so when I receive an response I can search both hashmap and know the type of event to json Deserialize
 }
@@ -48,7 +49,10 @@ impl WsConn {
 
         let last_sequence = Arc::new(AtomicU64::new(1));
         let last_sequence_clone_sender = Arc::clone(&last_sequence);
-        let last_sequence_clone_receiver = Arc::clone(&last_sequence);
+        //let last_sequence_clone_receiver = Arc::clone(&last_sequence);
+
+        let event_listeners = Arc::new(Mutex::new(HashMap::new()));
+        let event_listeners_clone_receiver = Arc::clone(&event_listeners);
 
         // Client --> Gateway
         if let Err(e) = sender_loop(last_sequence_clone_sender, sink, from_client).await {
@@ -57,7 +61,7 @@ impl WsConn {
         }
 
         //Gateway --> Client
-        if let Err(e) = receiver_loop(last_sequence_clone_receiver, stream, to_client).await {
+        if let Err(e) = receiver_loop(stream, to_client, event_listeners_clone_receiver).await {
             match e {
                 HassError::AuthenticationFailed | HassError::ConnectionClosed => {
                     //TODO - to_client.send(Response::Close(e).await.expect("Messahe closed"));
@@ -71,7 +75,7 @@ impl WsConn {
             last_sequence,
             to_gateway,
             from_gateway,
-            event_listeners: HashMap::new(),
+            event_listeners,
         })
     }
 
@@ -113,8 +117,8 @@ impl WsConn {
         //Add the callback in the event_listeners hashmap if the Subscription Response is successfull
         match response {
             Response::Result(v) if v.success == true => {
-                self.event_listeners
-                    .insert(v.id, Box::new(callback));
+                let mut table = self.event_listeners.lock().await;
+                table.insert(v.id, Box::new(callback));
                 return Ok("Ok".to_owned());
             }
             Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
@@ -206,9 +210,10 @@ async fn sender_loop(
 }
 
 async fn receiver_loop(
-    last_sequence: Arc<AtomicU64>,
+//    last_sequence: Arc<AtomicU64>,
     mut stream: SplitStream<WebSocket>,
     mut to_client: Sender<HassResult<Response>>,
+    event_listeners: Arc<Mutex<HashMap<u64,Box<dyn FnOnce() + Send>>>>
 ) -> HassResult<()> {
     task::spawn(async move {
         loop {
@@ -232,7 +237,16 @@ async fn receiver_loop(
                         match payload {
                             Ok(value) =>  match value {
                                 Response::Event(event) => {
-                                    todo!()
+                                    let mut table = event_listeners.lock().await;
+                                    let item = table.get_mut(&event.id);
+
+                                    if let Some(client_func) = item {
+                                        //Todo execute in a separate task ?
+                                        client_func;
+                                    };
+
+                                    //Todo try to unsubscrcibe if there is not in event_listeners
+
                                 },
                                 _ => to_client.send(Ok(value)).await.unwrap(),
 
