@@ -6,15 +6,15 @@
 mod command;
 pub mod config;
 mod errors;
-mod events;
-mod response;
+pub mod events;
+pub mod response;
 mod runtime;
 mod wsconn;
 
 use crate::command::{Auth, Command, Ping};
 use crate::config::{Config, ConnectionOptions};
 use crate::errors::{HassError, HassResult};
-use crate::response::Response;
+use crate::response::{Response, WSEvent};
 use crate::wsconn::WsConn;
 
 use futures::StreamExt;
@@ -120,7 +120,7 @@ impl HassClient {
 
     pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F)
     where
-        F: FnOnce() + Send + 'static,
+        F: Fn(WSEvent) + Send + 'static,
     {
         match self
             .gateway
@@ -135,20 +135,20 @@ impl HassClient {
                 err, event_name
             ),
         };
-        
+
         //TODO this has to be removed, is just for testing purpose
-    //    loop {
-    //     let event = self
-    //         .gateway
-    //         .as_mut()
-    //         .expect("test")
-    //         .from_gateway
-    //         .next()
-    //         .await
-    //         .ok_or_else(|| HassError::ConnectionClosed)
-    //         .unwrap();
-        
-    //         dbg!(event);
-    //    }
+        //    loop {
+        //     let event = self
+        //         .gateway
+        //         .as_mut()
+        //         .expect("test")
+        //         .from_gateway
+        //         .next()
+        //         .await
+        //         .ok_or_else(|| HassError::ConnectionClosed)
+        //         .unwrap();
+
+        //         dbg!(event);
+        //    }
     }
 }

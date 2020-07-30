@@ -5,11 +5,11 @@ use serde_derive::Deserialize;
 //TODO try out other type of events
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassEvent {
-    pub(crate) event_type: String,
-    pub(crate) data: EventData,
-    pub(crate) origin: String,
-    pub(crate) time_fired: String,
-    pub(crate) context: Context,
+    pub event_type: String,
+    pub data: EventData,
+    pub origin: String,
+    pub time_fired: String,
+    pub context: Context,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

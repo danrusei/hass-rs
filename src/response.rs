@@ -50,10 +50,10 @@ pub struct WSPong {
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSEvent {
-    pub(crate) id: u64,
+    pub id: u64,
     // #[serde(rename = "type")]
     // pub(crate) msg_type: String,
-    pub(crate) event: HassEvent,
+    pub event: HassEvent,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

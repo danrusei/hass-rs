@@ -1,6 +1,6 @@
 use crate::command::{Command, Subscribe};
 use crate::errors::{HassError, HassResult};
-use crate::response::Response;
+use crate::response::{Response, WSEvent};
 use crate::runtime::{connect_async, task, WebSocket};
 
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
@@ -31,7 +31,7 @@ pub struct WsConn {
 
     //Register all the events to be listen and its callback
     //TODO intial form, but I can send a result like Box<dyn Fn(String) -> BoxFuture<'static, EventResult>
-    pub(crate) event_listeners: Arc<Mutex<HashMap<u64, Box<dyn FnOnce() + Send>>>>,
+    pub(crate) event_listeners: Arc<Mutex<HashMap<u64, Box<dyn Fn(WSEvent) + Send>>>>,
     //TODO hashmap for Commands, is it needed ?
     // so when I receive an response I can search both hashmap and know the type of event to json Deserialize
 }
@@ -102,7 +102,7 @@ impl WsConn {
         callback: F,
     ) -> HassResult<String>
     where
-        F: FnOnce() + Send + 'static,
+        F: Fn(WSEvent) + Send + 'static,
     {
         //create the Event Subscribe Command
         let cmd = Command::SubscribeEvent(Subscribe {
@@ -210,10 +210,10 @@ async fn sender_loop(
 }
 
 async fn receiver_loop(
-//    last_sequence: Arc<AtomicU64>,
+    //    last_sequence: Arc<AtomicU64>,
     mut stream: SplitStream<WebSocket>,
     mut to_client: Sender<HassResult<Response>>,
-    event_listeners: Arc<Mutex<HashMap<u64,Box<dyn FnOnce() + Send>>>>
+    event_listeners: Arc<Mutex<HashMap<u64, Box<dyn Fn(WSEvent) + Send>>>>,
 ) -> HassResult<()> {
     task::spawn(async move {
         loop {
@@ -235,21 +235,20 @@ async fn receiver_loop(
                         //else send the response default to user, as below.
 
                         match payload {
-                            Ok(value) =>  match value {
+                            Ok(value) => match value {
                                 Response::Event(event) => {
                                     let mut table = event_listeners.lock().await;
-                                    let item = table.get_mut(&event.id).unwrap();
-                                    item();
-                                    
+                                    if let Some(client_func) = table.get_mut(&event.id) {
+                                        //execute client closure
+                                        client_func(event);
+                                    }
+
                                     //Todo try to unsubscrcibe if there is not in event_listeners
-
-                                },
+                                }
                                 _ => to_client.send(Ok(value)).await.unwrap(),
-
                             },
-                            Err(error) => to_client.send(Err(error)).await.unwrap()
+                            Err(error) => to_client.send(Err(error)).await.unwrap(),
                         };
-                        
                     }
                     _ => {}
                 },
