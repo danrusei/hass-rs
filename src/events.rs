@@ -1,15 +1,52 @@
 use serde_derive::Deserialize;
 use serde_json::Value;
 
-//TODO -- Structure is working but I have to create the **data** field
+//This constructed against StateChangedEvent, may not be compatible with other event types
+//TODO try out other type of events
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassEvent {
     pub(crate) event_type: String,
-    pub(crate) data: Option<Value>,
+    pub(crate) data: EventData,
     pub(crate) origin: String,
     pub(crate) time_fired: String,
     pub(crate) context: Context,
-    
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct EventData {
+    entity_id: String,
+    new_state: Option<HassEntity>,
+    old_state: Option<HassEntity>,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct HassEntity {
+    entity_id: String,
+    state: String,
+    last_changed: String,
+    last_updated: String,
+    attributes: HassEntityAttributeBase,
+    context: Context,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct HassEntityAttributeBase {
+    #[serde(default)]
+    friendly_name: String,
+    #[serde(default)]
+    unit_of_measurement: String,
+    #[serde(default)]
+    icon: String,
+    #[serde(default)]
+    entity_picture: String,
+    #[serde(default)]
+    supported_features: u32,
+    #[serde(default)]
+    hidden: bool,
+    #[serde(default)]
+    assumed_state: bool,
+    #[serde(default)]
+    device_class: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

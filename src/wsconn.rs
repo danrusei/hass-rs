@@ -31,7 +31,6 @@ pub struct WsConn {
     //Register all the events to be listen and its callback
     //TODO intial form, but I can send a result like Box<dyn Fn(String) -> BoxFuture<'static, EventResult>
     pub(crate) event_listeners: HashMap<String, Box<dyn FnOnce() + Send>>,
-    
     //TODO hashmap for Commands, is it needed ?
     // so when I receive an response I can search both hashmap and know the type of event to json Deserialize
 }

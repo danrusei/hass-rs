@@ -135,13 +135,20 @@ impl HassClient {
                 err, event_name
             ),
         };
-
-        //TODO this has to be removed, is just for testing
-        let event =  self.gateway.as_mut().expect("test").from_gateway.next().await.ok_or_else(|| HassError::ConnectionClosed).unwrap();
-        match event {
-            Ok(Response::Event(e)) => println!("Yooooooohhhhhhhhhhhhooooooooooooo {}", e.event.event_type),
-            Err(v) => println!("OOOOPPPPPPPPPPPPSSSSSSSS {}", v),
-            _ => {}
-        };
+        
+        //TODO this has to be removed, is just for testing purpose
+    //    loop {
+    //     let event = self
+    //         .gateway
+    //         .as_mut()
+    //         .expect("test")
+    //         .from_gateway
+    //         .next()
+    //         .await
+    //         .ok_or_else(|| HassError::ConnectionClosed)
+    //         .unwrap();
+        
+    //         dbg!(event);
+    //    }
     }
 }
