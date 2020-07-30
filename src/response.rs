@@ -43,14 +43,14 @@ pub struct AuthInvalid {
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSPong {
-    pub(crate) id: u32,
+    pub(crate) id: u64,
     // #[serde(rename = "type")]
     // pub(crate) msg_type: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSEvent {
-    pub(crate) id: u32,
+    pub(crate) id: u64,
     // #[serde(rename = "type")]
     // pub(crate) msg_type: String,
     pub(crate) event: HassEvent,
@@ -58,7 +58,7 @@ pub struct WSEvent {
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSResult {
-    pub(crate) id: u32,
+    pub(crate) id: u64,
     // #[serde(rename = "type")]
     // pub(crate) msg_type: String,
     pub(crate) success: bool,

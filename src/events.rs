@@ -1,5 +1,5 @@
 use serde_derive::Deserialize;
-use serde_json::Value;
+//use serde_json::Value;
 
 //This constructed against StateChangedEvent, may not be compatible with other event types
 //TODO try out other type of events

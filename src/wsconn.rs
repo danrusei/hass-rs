@@ -30,7 +30,7 @@ pub struct WsConn {
 
     //Register all the events to be listen and its callback
     //TODO intial form, but I can send a result like Box<dyn Fn(String) -> BoxFuture<'static, EventResult>
-    pub(crate) event_listeners: HashMap<String, Box<dyn FnOnce() + Send>>,
+    pub(crate) event_listeners: HashMap<u64, Box<dyn FnOnce() + Send>>,
     //TODO hashmap for Commands, is it needed ?
     // so when I receive an response I can search both hashmap and know the type of event to json Deserialize
 }
@@ -110,12 +110,11 @@ impl WsConn {
         //send command to subscribe to specific event
         let response = self.command(cmd).await.unwrap();
 
-        //this function will be executed on the Event received from Stream
-        //Check the response
+        //Add the callback in the event_listeners hashmap if the Subscription Response is successfull
         match response {
             Response::Result(v) if v.success == true => {
                 self.event_listeners
-                    .insert(event_name.to_owned(), Box::new(callback));
+                    .insert(v.id, Box::new(callback));
                 return Ok("Ok".to_owned());
             }
             Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
@@ -229,7 +228,18 @@ async fn receiver_loop(
                         //if not subscribe, send unsubscribe for that event
                         // if subscribed than execute the callback
                         //else send the response default to user, as below.
-                        to_client.send(payload).await.unwrap();
+
+                        match payload {
+                            Ok(value) =>  match value {
+                                Response::Event(event) => {
+                                    todo!()
+                                },
+                                _ => to_client.send(Ok(value)).await.unwrap(),
+
+                            },
+                            Err(error) => to_client.send(Err(error)).await.unwrap()
+                        };
+                        
                     }
                     _ => {}
                 },
