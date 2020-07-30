@@ -238,13 +238,9 @@ async fn receiver_loop(
                             Ok(value) =>  match value {
                                 Response::Event(event) => {
                                     let mut table = event_listeners.lock().await;
-                                    let item = table.get_mut(&event.id);
-
-                                    if let Some(client_func) = item {
-                                        //Todo execute in a separate task ?
-                                        client_func;
-                                    };
-
+                                    let item = table.get_mut(&event.id).unwrap();
+                                    item();
+                                    
                                     //Todo try to unsubscrcibe if there is not in event_listeners
 
                                 },
