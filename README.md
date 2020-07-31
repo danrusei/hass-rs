@@ -15,11 +15,12 @@ cargo run --example example_1
 - [ ] Authenticate using OAuth2
 - [x] Ping - Pong
 - [ ] Fetch Commands
-    - [ ] Fetch State
     - [ ] Fetch Config
+    - [ ] Fetch State
     - [ ] Fetch Services
 - [x] Subscribe
     - [x] Events
     - [ ] Config
     - [ ] Services
+- [x] UnSubscribe
 - [ ] Call a service
