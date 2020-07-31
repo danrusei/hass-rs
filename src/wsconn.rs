@@ -126,15 +126,11 @@ impl WsConn {
         }
     }
 
-    pub(crate) async fn unsubscribe_message(
-        &mut self,
-        subscription_id: u64,
-    ) -> HassResult<String> {
-
+    pub(crate) async fn unsubscribe_message(&mut self, subscription_id: u64) -> HassResult<String> {
         //Unsubscribe the Event
         let unsubscribe_req = Command::Unsubscribe(Unsubscribe {
             id: Some(0),
-            msg_type: "unsubscribe_event".to_owned(),
+            msg_type: "unsubscribe_events".to_owned(),
             subscription: subscription_id,
         });
 
@@ -153,7 +149,6 @@ impl WsConn {
             Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
-
     }
 }
 
@@ -231,8 +226,8 @@ async fn sender_loop(
                             .unwrap();
                     }
                     Command::Unsubscribe(mut unsubscribe) => {
-                         // Increase the last sequence and use the previous value in the request
-                         let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                        // Increase the last sequence and use the previous value in the request
+                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
                             0 => None,
                             v => Some(v),
                         };
@@ -248,7 +243,6 @@ async fn sender_loop(
                             .await
                             .map_err(|_| HassError::ConnectionClosed)
                             .unwrap();
-
                     }
                 },
                 None => {}

@@ -118,24 +118,21 @@ impl HassClient {
         }
     }
 
-    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F) -> HassResult<String> 
+    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F) -> HassResult<String>
     where
         F: Fn(WSEvent) + Send + 'static,
     {
-        self
-            .gateway
+        self.gateway
             .as_mut()
             .expect("no gateway found")
             .subscribe_message(event_name, callback)
             .await
     }
     pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
-        
-        self
-        .gateway
-        .as_mut()
-        .expect("no gateway found")
-        .unsubscribe_message(subscription_id)
-        .await
+        self.gateway
+            .as_mut()
+            .expect("no gateway found")
+            .unsubscribe_message(subscription_id)
+            .await
     }
 }
