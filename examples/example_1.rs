@@ -1,5 +1,5 @@
 use env_logger;
-use hass_rs::{config::Config, HassClient};
+use hass_rs::{config::Config, HassClient, response::WSEvent};
 
 static TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI0YzcyOGFjNDQ4MTc0NWIwODUxY2ZjMGE5YTc2ZWE1NSIsImlhdCI6MTU5NTIzNDYwMiwiZXhwIjoxOTEwNTk0NjAyfQ.Ow-mSTKNUSyqcJJrSBMYy6ftKMiTEwhMl-uhtBxln80";
 
@@ -30,14 +30,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Subscribe to an Event");
 
-    client
-        .subscribe_event("state_changed", |item| {
-            println!(
-                "Closure is executed when the event received {}",
-                item.event.time_fired
-            )
-        })
-        .await;
+    let pet = |item:WSEvent| {
+        println!(
+        "Closure is executed when the Event with the id: {} has been received, it was fired at {}", item.id,
+        item.event.time_fired );
+    };
+
+    match client.subscribe_event("state_changed", pet).await {
+        Ok(v) => println!("{}", v),
+        Err(err) => println!("{}", err),
+    }
 
     async_std::task::sleep(std::time::Duration::from_secs(30)).await;
 

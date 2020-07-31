@@ -1,4 +1,4 @@
-use crate::command::{Command, Subscribe};
+use crate::command::{Command, Subscribe, Unsubscribe};
 use crate::errors::{HassError, HassResult};
 use crate::response::{Response, WSEvent};
 use crate::runtime::{connect_async, task, WebSocket};
@@ -125,6 +125,36 @@ impl WsConn {
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
+
+    pub(crate) async fn unsubscribe_message(
+        &mut self,
+        subscription_id: u64,
+    ) -> HassResult<String> {
+
+        //Unsubscribe the Event
+        let unsubscribe_req = Command::Unsubscribe(Unsubscribe {
+            id: Some(0),
+            msg_type: "unsubscribe_event".to_owned(),
+            subscription: subscription_id,
+        });
+
+        //send command to unsubscribe from specific event
+        let response = self.command(unsubscribe_req).await.unwrap();
+
+        //Remove the event_type and the callback fromthe event_listeners hashmap
+        match response {
+            Response::Result(v) if v.success == true => {
+                let mut table = self.event_listeners.lock().await;
+                if let Some(_) = table.remove(&subscription_id) {
+                    return Ok("Ok".to_owned());
+                }
+                return Err(HassError::Generic("Wrong subscription ID".to_owned()));
+            }
+            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
+
+    }
 }
 
 async fn sender_loop(
@@ -200,6 +230,26 @@ async fn sender_loop(
                             .map_err(|_| HassError::ConnectionClosed)
                             .unwrap();
                     }
+                    Command::Unsubscribe(mut unsubscribe) => {
+                         // Increase the last sequence and use the previous value in the request
+                         let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                            0 => None,
+                            v => Some(v),
+                        };
+
+                        unsubscribe.id = seq;
+
+                        // Transform command to TungsteniteMessage
+                        let cmd = Command::Unsubscribe(unsubscribe).to_tungstenite_message();
+
+                        // Send command to gateway
+                        // NOT GOOD as it is not returned, see above
+                        sink.send(cmd)
+                            .await
+                            .map_err(|_| HassError::ConnectionClosed)
+                            .unwrap();
+
+                    }
                 },
                 None => {}
             }
@@ -227,23 +277,19 @@ async fn receiver_loop(
                         let payload: Result<Response, HassError> = serde_json::from_str(&data)
                             .map_err(|_| HassError::UnknownPayloadReceived);
 
-                        // do I need to check anything here before sending to client?
-                        //TODO match on payload Some(x) if x.type == alert
-                        //if it is alert verify if we are subscribed to this
-                        //if not subscribe, send unsubscribe for that event
-                        // if subscribed than execute the callback
-                        //else send the response default to user, as below.
-
+                        //Match on payload, and act accordingly, like execute the client defined closure if any Event received
                         match payload {
                             Ok(value) => match value {
                                 Response::Event(event) => {
                                     let mut table = event_listeners.lock().await;
-                                    if let Some(client_func) = table.get_mut(&event.id) {
-                                        //execute client closure
-                                        client_func(event);
-                                    }
 
-                                    //Todo try to unsubscrcibe if there is not in event_listeners
+                                    match table.get_mut(&event.id) {
+                                        Some(client_func) => {
+                                            //execute client closure
+                                            client_func(event);
+                                        }
+                                        None => todo!("send unsubscribe request"),
+                                    }
                                 }
                                 _ => to_client.send(Ok(value)).await.unwrap(),
                             },

@@ -118,37 +118,24 @@ impl HassClient {
         }
     }
 
-    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F)
+    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F) -> HassResult<String> 
     where
         F: Fn(WSEvent) + Send + 'static,
     {
-        match self
+        self
             .gateway
             .as_mut()
             .expect("no gateway found")
             .subscribe_message(event_name, callback)
             .await
-        {
-            Ok(v) => println!("Got {} on the event {} subscription request", v, event_name),
-            Err(err) => println!(
-                "Got this error {} while trying to subscribe to {}",
-                err, event_name
-            ),
-        };
-
-        //TODO this has to be removed, is just for testing purpose
-        //    loop {
-        //     let event = self
-        //         .gateway
-        //         .as_mut()
-        //         .expect("test")
-        //         .from_gateway
-        //         .next()
-        //         .await
-        //         .ok_or_else(|| HassError::ConnectionClosed)
-        //         .unwrap();
-
-        //         dbg!(event);
-        //    }
+    }
+    pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
+        
+        self
+        .gateway
+        .as_mut()
+        .expect("no gateway found")
+        .unsubscribe_message(subscription_id)
+        .await
     }
 }
