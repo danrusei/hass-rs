@@ -9,7 +9,7 @@ pub mod types;
 mod wsconn;
 
 use crate::errors::{HassError, HassResult};
-use crate::types::{Auth, Command, Config, ConnectionOptions, Ping, Response, WSEvent};
+use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ping, Response, WSEvent, GetConfig};
 use crate::wsconn::WsConn;
 
 use futures::StreamExt;
@@ -24,7 +24,7 @@ pub struct HassClient {
 
 impl HassClient {
     //Create a new Hass Client
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: ConnConfig) -> Self {
         HassClient {
             opts: ConnectionOptions {
                 host: config.host,
@@ -129,5 +129,33 @@ impl HassClient {
             .expect("no gateway found")
             .unsubscribe_message(subscription_id)
             .await
+    }
+
+    pub async fn get_config(&mut self) -> HassResult<HassConfig> {
+        //Send Ping command and expect Pong
+        let config_req = Command::GetConfig(GetConfig {
+            id: Some(0),
+            msg_type: "get_config".to_owned(),
+        });
+        let response = self
+            .gateway
+            .as_mut()
+            .expect("no gateway found")
+            .command(config_req)
+            .await?;
+        
+            match response {
+                Response::Result(data) => {
+                 match data.success {
+                     true => {
+                        //TODO handle the error properly 
+                        let config: HassConfig = serde_json::from_value(data.result.unwrap()).unwrap();
+                        return Ok(config)
+                     }
+                     false => return Err(HassError::ReponseError(data)),
+                 }
+            }
+                _ => return Err(HassError::UnknownPayloadReceived),
+            }
     }
 }

@@ -1,22 +1,29 @@
-#[derive(Debug)]
-pub struct ConnectionOptions {
-    pub(crate) host: String,
-    pub(crate) port: u16,
-    pub(crate) ssl: bool,
+use serde_derive::Deserialize;
+
+//This is the HassConfig
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct HassConfig {
+    latitude: f32,
+    longitude: f32,
+    elevation: u32,
+    unit_system: UnitSystem,
+    location_name: String,
+    time_zone: String,
+    components: Vec<String>,
+    config_dir: String,
+    whitelist_external_dirs: Vec<String>,
+    version: String,
+    config_source: String,
+    safe_mode: bool,
+    external_url: Option<String>,
+    internal_url: Option<String>,
 }
 
-impl Default for ConnectionOptions {
-    fn default() -> ConnectionOptions {
-        ConnectionOptions {
-            host: String::from("localhost"),
-            port: 8123,
-            ssl: false,
-        }
-    }
-}
-
-pub struct Config {
-    pub host: String,
-    pub port: u16,
-    pub token: String,
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct UnitSystem {
+    length: String,
+    mass: String,
+    pressure: String,
+    temperature: String,
+    volume: String,
 }

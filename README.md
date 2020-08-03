@@ -14,8 +14,8 @@ cargo run --example example_1
 - [x] Authenticate using long-lived access tokens
 - [ ] Authenticate using OAuth2
 - [x] Ping - Pong
-- [ ] Fetch Commands
-    - [ ] Fetch Config
+- [x] Fetch Commands
+    - [x] Fetch Config
     - [ ] Fetch State
     - [ ] Fetch Services
 - [x] Subscribe

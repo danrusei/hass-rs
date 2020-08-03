@@ -1,5 +1,5 @@
 use env_logger;
-use hass_rs::types::{Config, WSEvent};
+use hass_rs::types::{ConnConfig, WSEvent};
 use hass_rs::HassClient;
 
 static TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI0YzcyOGFjNDQ4MTc0NWIwODUxY2ZjMGE5YTc2ZWE1NSIsImlhdCI6MTU5NTIzNDYwMiwiZXhwIjoxOTEwNTk0NjAyfQ.Ow-mSTKNUSyqcJJrSBMYy6ftKMiTEwhMl-uhtBxln80";
@@ -9,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     println!("Creating the Websocket Client and Authenticate the session");
-    let mut client = HassClient::new(Config {
+    let mut client = HassClient::new(ConnConfig {
         host: "localhost".to_owned(),
         port: 8123,
         token: TOKEN.to_owned(),
@@ -50,6 +50,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     async_std::task::sleep(std::time::Duration::from_secs(20)).await;
+
+    match client.get_config().await {
+        Ok(v) => println!("{:?}", v),
+        Err(err) => println!("Oh no, an error: {}", err),
+    }
 
     Ok(())
 }

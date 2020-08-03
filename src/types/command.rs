@@ -7,7 +7,9 @@ pub enum Command {
     Ping(Ping),
     SubscribeEvent(Subscribe),
     Unsubscribe(Unsubscribe),
-    // maybe -> Heartbeat(Option<u64>),
+    GetConfig(GetConfig),
+    //    GetServices(),
+    //    GetStates(),
     Close,
 }
 
@@ -30,6 +32,10 @@ impl Command {
             }
             Self::Unsubscribe(unsubscribe) => {
                 let cmd_str = serde_json::to_string(&unsubscribe).unwrap();
+                TungsteniteMessage::Text(cmd_str)
+            }
+            Self::GetConfig(getconfig) => {
+                let cmd_str = serde_json::to_string(&getconfig).unwrap();
                 TungsteniteMessage::Text(cmd_str)
             }
             Self::Close => todo!(),
@@ -65,4 +71,11 @@ pub struct Unsubscribe {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) subscription: u64,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct GetConfig {
+    pub(crate) id: Option<u64>,
+    #[serde(rename = "type")]
+    pub(crate) msg_type: String,
 }

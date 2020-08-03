@@ -1,6 +1,6 @@
-use crate::types::{Command, Subscribe, Unsubscribe, Response, WSEvent};
 use crate::errors::{HassError, HassResult};
 use crate::runtime::{connect_async, task, WebSocket};
+use crate::types::{Command, Response, Subscribe, Unsubscribe, WSEvent};
 
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use futures::channel::mpsc::{channel, Receiver, Sender};
@@ -235,6 +235,25 @@ async fn sender_loop(
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::Unsubscribe(unsubscribe).to_tungstenite_message();
+
+                        // Send command to gateway
+                        // NOT GOOD as it is not returned, see above
+                        sink.send(cmd)
+                            .await
+                            .map_err(|_| HassError::ConnectionClosed)
+                            .unwrap();
+                    }
+                    Command::GetConfig(mut getconfig) => {
+                        // Increase the last sequence and use the previous value in the request
+                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                            0 => None,
+                            v => Some(v),
+                        };
+
+                        getconfig.id = seq;
+
+                        // Transform command to TungsteniteMessage
+                        let cmd = Command::GetConfig(getconfig).to_tungstenite_message();
 
                         // Send command to gateway
                         // NOT GOOD as it is not returned, see above
