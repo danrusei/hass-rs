@@ -10,17 +10,19 @@ cargo run --example example_1
 ## Development status
 
 - [x] Create the client
-- [ ] Automatic reconnection
-- [x] Authenticate using long-lived access tokens
-- [ ] Authenticate using OAuth2
-- [x] Ping - Pong
-- [x] Fetch Commands
-    - [x] Fetch Config
-    - [ ] Fetch State
-    - [ ] Fetch Services
+    - [ ] Automatic reconnection
+    - [x] Authenticate using long-lived access tokens
+    - [ ] Authenticate using OAuth2
+- [ ] Call a service
 - [x] Subscribe
     - [x] Events
     - [ ] Config
     - [ ] Services
 - [x] UnSubscribe
-- [ ] Call a service
+- [x] Fetch Commands
+    - [ ] Fetching states
+    - [x] Fetching config
+    - [ ] Fetching services
+    - [ ] Fetching pannels
+    - [ ] Fetching media player thumbnails
+- [x] Pings - Pongs
