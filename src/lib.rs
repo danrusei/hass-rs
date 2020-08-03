@@ -3,18 +3,13 @@
 //! Hass-rs is a HomeAssistant websokcte api library
 //! based on https://developers.home-assistant.io/docs/api/websocket specifications
 
-mod command;
-pub mod config;
 mod errors;
-pub mod events;
-pub mod response;
 mod runtime;
+pub mod types;
 mod wsconn;
 
-use crate::command::{Auth, Command, Ping};
-use crate::config::{Config, ConnectionOptions};
 use crate::errors::{HassError, HassResult};
-use crate::response::{Response, WSEvent};
+use crate::types::{Auth, Command, Config, ConnectionOptions, Ping, Response, WSEvent};
 use crate::wsconn::WsConn;
 
 use futures::StreamExt;

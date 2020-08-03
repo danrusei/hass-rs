@@ -1,5 +1,6 @@
 use env_logger;
-use hass_rs::{config::Config, response::WSEvent, HassClient};
+use hass_rs::types::{Config, WSEvent};
+use hass_rs::HassClient;
 
 static TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI0YzcyOGFjNDQ4MTc0NWIwODUxY2ZjMGE5YTc2ZWE1NSIsImlhdCI6MTU5NTIzNDYwMiwiZXhwIjoxOTEwNTk0NjAyfQ.Ow-mSTKNUSyqcJJrSBMYy6ftKMiTEwhMl-uhtBxln80";
 

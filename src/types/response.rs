@@ -1,4 +1,4 @@
-use crate::events::HassEvent;
+use crate::types::HassEvent;
 
 use serde_derive::Deserialize;
 use serde_json::Value;

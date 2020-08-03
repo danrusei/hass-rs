@@ -1,5 +1,5 @@
 //! # Hass error types
-use crate::response::WSResult;
+use crate::types::WSResult;
 
 use async_tungstenite::tungstenite;
 use futures::channel::mpsc::SendError;
