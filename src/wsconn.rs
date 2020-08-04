@@ -262,6 +262,44 @@ async fn sender_loop(
                             .map_err(|_| HassError::ConnectionClosed)
                             .unwrap();
                     }
+                    Command::GetStates(mut getstates) => {
+                        // Increase the last sequence and use the previous value in the request
+                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                            0 => None,
+                            v => Some(v),
+                        };
+
+                        getstates.id = seq;
+
+                        // Transform command to TungsteniteMessage
+                        let cmd = Command::GetStates(getstates).to_tungstenite_message();
+
+                        // Send command to gateway
+                        // NOT GOOD as it is not returned, see above
+                        sink.send(cmd)
+                            .await
+                            .map_err(|_| HassError::ConnectionClosed)
+                            .unwrap();
+                    }
+                    Command::GetServices(mut getservices) => {
+                        // Increase the last sequence and use the previous value in the request
+                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
+                            0 => None,
+                            v => Some(v),
+                        };
+
+                        getservices.id = seq;
+
+                        // Transform command to TungsteniteMessage
+                        let cmd = Command::GetServices(getservices).to_tungstenite_message();
+
+                        // Send command to gateway
+                        // NOT GOOD as it is not returned, see above
+                        sink.send(cmd)
+                            .await
+                            .map_err(|_| HassError::ConnectionClosed)
+                            .unwrap();
+                    }
                 },
                 None => {}
             }

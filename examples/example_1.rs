@@ -29,29 +29,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
-    println!("Subscribe to an Event");
+    // println!("Subscribe to an Event");
 
-    let pet = |item: WSEvent| {
-        println!(
-        "Closure is executed when the Event with the id: {} has been received, it was fired at {}", item.id,
-        item.event.time_fired );
-    };
+    // let pet = |item: WSEvent| {
+    //     println!(
+    //     "Closure is executed when the Event with the id: {} has been received, it was fired at {}", item.id,
+    //     item.event.time_fired );
+    // };
 
-    match client.subscribe_event("state_changed", pet).await {
-        Ok(v) => println!("Event subscribed: {}", v),
-        Err(err) => println!("Oh no, an error: {}", err),
-    }
+    // match client.subscribe_event("state_changed", pet).await {
+    //     Ok(v) => println!("Event subscribed: {}", v),
+    //     Err(err) => println!("Oh no, an error: {}", err),
+    // }
 
-    async_std::task::sleep(std::time::Duration::from_secs(20)).await;
+    // async_std::task::sleep(std::time::Duration::from_secs(20)).await;
 
-    match client.unsubscribe_event(2).await {
-        Ok(v) => println!("Succefully unsubscribed: {}", v),
-        Err(err) => println!("Oh no, an error: {}", err),
-    }
+    // match client.unsubscribe_event(2).await {
+    //     Ok(v) => println!("Succefully unsubscribed: {}", v),
+    //     Err(err) => println!("Oh no, an error: {}", err),
+    // }
 
-    async_std::task::sleep(std::time::Duration::from_secs(20)).await;
+    // async_std::task::sleep(std::time::Duration::from_secs(20)).await;
 
+    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+
+    println!("Get Hass Config");
     match client.get_config().await {
+        Ok(v) => println!("{:?}", v),
+        Err(err) => println!("Oh no, an error: {}", err),
+    }
+
+    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+
+    println!("Get Hass States");
+    match client.get_states().await {
+        Ok(v) => println!("{:?}", v),
+        Err(err) => println!("Oh no, an error: {}", err),
+    }
+
+    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+
+    println!("Get Hass Services");
+    match client.get_services().await {
         Ok(v) => println!("{:?}", v),
         Err(err) => println!("Oh no, an error: {}", err),
     }

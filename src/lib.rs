@@ -9,7 +9,7 @@ pub mod types;
 mod wsconn;
 
 use crate::errors::{HassError, HassResult};
-use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ping, Response, WSEvent, GetConfig};
+use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ask, Response, WSEvent, HassEntity, HassService};
 use crate::wsconn::WsConn;
 
 use futures::StreamExt;
@@ -94,7 +94,7 @@ impl HassClient {
 
     pub async fn ping(&mut self) -> HassResult<String> {
         //Send Ping command and expect Pong
-        let ping_req = Command::Ping(Ping {
+        let ping_req = Command::Ping(Ask {
             id: Some(0),
             msg_type: "ping".to_owned(),
         });
@@ -132,8 +132,8 @@ impl HassClient {
     }
 
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
-        //Send Ping command and expect Pong
-        let config_req = Command::GetConfig(GetConfig {
+        //Send GetConfig command and expect Pong
+        let config_req = Command::GetConfig(Ask {
             id: Some(0),
             msg_type: "get_config".to_owned(),
         });
@@ -151,6 +151,65 @@ impl HassClient {
                         //TODO handle the error properly 
                         let config: HassConfig = serde_json::from_value(data.result.unwrap()).unwrap();
                         return Ok(config)
+                     }
+                     false => return Err(HassError::ReponseError(data)),
+                 }
+            }
+                _ => return Err(HassError::UnknownPayloadReceived),
+            }
+    }
+
+    pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
+        //Send GetStates command and expect a number of Entities
+        let states_req = Command::GetStates(Ask {
+            id: Some(0),
+            msg_type: "get_states".to_owned(),
+        });
+        let response = self
+            .gateway
+            .as_mut()
+            .expect("no gateway found")
+            .command(states_req)
+            .await?;
+
+            // TODO - problem Entity atributes could be different, so this is wrong
+            // have to make it Value, and based on entity_id deserialize differently
+            // maybe this has to be handled by the user, add to example folder
+            match response {
+                Response::Result(data) => {
+                 match data.success {
+                     true => {
+                        //TODO handle the error properly 
+                        let states: Vec<HassEntity> = serde_json::from_value(data.result.unwrap()).unwrap();
+                        return Ok(states)
+                     }
+                     false => return Err(HassError::ReponseError(data)),
+                 }
+            }
+                _ => return Err(HassError::UnknownPayloadReceived),
+            }
+    
+    }
+    pub async fn get_services(&mut self) -> HassResult<HassService> {
+        //Send GetStates command and expect a number of Entities
+        let services_req = Command::GetServices(Ask {
+            id: Some(0),
+            msg_type: "get_services".to_owned(),
+        });
+        let response = self
+            .gateway
+            .as_mut()
+            .expect("no gateway found")
+            .command(services_req)
+            .await?;
+        
+            match response {
+                Response::Result(data) => {
+                 match data.success {
+                     true => {
+                        //TODO handle the error properly 
+                        let services: HassService = serde_json::from_value(data.result.unwrap()).unwrap();
+                        return Ok(services)
                      }
                      false => return Err(HassError::ReponseError(data)),
                  }

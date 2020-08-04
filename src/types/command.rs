@@ -4,12 +4,12 @@ use serde::Serialize;
 #[derive(Debug)]
 pub enum Command {
     AuthInit(Auth),
-    Ping(Ping),
+    Ping(Ask),
     SubscribeEvent(Subscribe),
     Unsubscribe(Unsubscribe),
-    GetConfig(GetConfig),
-    //    GetServices(),
-    //    GetStates(),
+    GetConfig(Ask),
+    GetServices(Ask),
+    GetStates(Ask),
     Close,
 }
 
@@ -38,6 +38,14 @@ impl Command {
                 let cmd_str = serde_json::to_string(&getconfig).unwrap();
                 TungsteniteMessage::Text(cmd_str)
             }
+            Self::GetStates(getstates) => {
+                let cmd_str = serde_json::to_string(&getstates).unwrap();
+                TungsteniteMessage::Text(cmd_str)
+            }
+            Self::GetServices(getservices) => {
+                let cmd_str = serde_json::to_string(&getservices).unwrap();
+                TungsteniteMessage::Text(cmd_str)
+            }
             Self::Close => todo!(),
         }
     }
@@ -51,7 +59,7 @@ pub struct Auth {
 }
 
 #[derive(Debug, Serialize, PartialEq)]
-pub struct Ping {
+pub struct Ask {
     pub(crate) id: Option<u64>,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
@@ -71,11 +79,4 @@ pub struct Unsubscribe {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) subscription: u64,
-}
-
-#[derive(Debug, Serialize, PartialEq)]
-pub struct GetConfig {
-    pub(crate) id: Option<u64>,
-    #[serde(rename = "type")]
-    pub(crate) msg_type: String,
 }

@@ -16,13 +16,13 @@ cargo run --example example_1
 - [ ] Call a service
 - [x] Subscribe
     - [x] Events
-    - [ ] Config
-    - [ ] Services
+    - [ ] Config (is this needed ?, if so raise an Issue)
+    - [ ] Services (is this needed ?, if so raise an Issue)
 - [x] UnSubscribe
 - [x] Fetch Commands
     - [ ] Fetching states
     - [x] Fetching config
     - [ ] Fetching services
-    - [ ] Fetching pannels
-    - [ ] Fetching media player thumbnails
+    - [ ] Fetching pannels (is this needed ?, if so raise an Issue)
+    - [ ] Fetching media player thumbnails (is this needed ?, if so raise an Issue)
 - [x] Pings - Pongs
