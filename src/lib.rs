@@ -9,7 +9,7 @@ pub mod types;
 mod wsconn;
 
 use crate::errors::{HassError, HassResult};
-use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ask, Response, WSEvent, HassEntity, HassServices};
+use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ask, Response, WSEvent, HassEntity, HassServices, CallService};
 use crate::wsconn::WsConn;
 
 use futures::StreamExt;
@@ -210,6 +210,34 @@ impl HassClient {
                         //TODO handle the error properly 
                         let services: HassServices = serde_json::from_value(data.result.unwrap()).unwrap();
                         return Ok(services)
+                     }
+                     false => return Err(HassError::ReponseError(data)),
+                 }
+            }
+                _ => return Err(HassError::UnknownPayloadReceived),
+        }
+    }
+    pub async fn call_service(&mut self, domain: String, service: String, service_data: Option<String>) -> HassResult<String> {
+        //Send GetStates command and expect a number of Entities
+        let services_req = Command::CallService(CallService {
+            id: Some(0),
+            msg_type: "call_service".to_owned(),
+            domain,
+            service,
+            service_data,
+        });
+        let response = self
+            .gateway
+            .as_mut()
+            .expect("no gateway found")
+            .command(services_req)
+            .await?;
+        
+            match response {
+                Response::Result(data) => {
+                 match data.success {
+                     true => {
+                        return Ok("command executed successfully".to_owned())
                      }
                      false => return Err(HassError::ReponseError(data)),
                  }

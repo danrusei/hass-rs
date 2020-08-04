@@ -1,6 +1,5 @@
 use serde_derive::Deserialize;
 use crate::types::{HassEntity, Context};
-//use serde_json::Value;
 
 //This constructed against StateChangedEvent, may not be compatible with other event types
 //TODO try out other type of events

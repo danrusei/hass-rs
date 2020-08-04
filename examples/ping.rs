@@ -24,7 +24,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         pong if pong == String::from("pong") => {
             println!("Great the Hass Websocket Server responds to ping")
         }
-        _ => println!("I was expecting pong"),
+        _ => println!("Ooops, I was expecting pong"),
+    }
+
+    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+
+    let service_data = String::from(r#""{ "entity_id": "group.kitchen" }""#);
+
+    match client.call_service("homeassistant".to_owned(), "update_entity".to_owned(), Some(service_data)).await {
+        Ok(done) if done == String::from("command executed successfully") => {
+            println!("Good, your command was executed")
+        }
+        Ok(_) => println!("Ooops, I got strange result"),
+        Err(error) => println!("Ooops, I got this error {}", error)
+
     }
 
     Ok(())

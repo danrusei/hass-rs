@@ -10,6 +10,7 @@ pub enum Command {
     GetConfig(Ask),
     GetServices(Ask),
     GetStates(Ask),
+    CallService(CallService),
     Close,
 }
 
@@ -46,6 +47,10 @@ impl Command {
                 let cmd_str = serde_json::to_string(&getservices).unwrap();
                 TungsteniteMessage::Text(cmd_str)
             }
+            Self::CallService(callservice) => {
+                let cmd_str = serde_json::to_string(&callservice).unwrap();
+                TungsteniteMessage::Text(cmd_str)
+            }
             Self::Close => todo!(),
         }
     }
@@ -79,4 +84,14 @@ pub struct Unsubscribe {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) subscription: u64,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct CallService {
+    pub(crate) id: Option<u64>,
+    #[serde(rename = "type")]
+    pub(crate) msg_type: String,
+    pub(crate) domain: String,
+    pub(crate) service: String,
+    pub(crate) service_data: Option<String>,
 }
