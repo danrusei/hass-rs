@@ -10,28 +10,28 @@ pub type HassResult<T> = std::result::Result<T, HassError>;
 /// The error enum for Hass
 #[derive(Debug)]
 pub enum HassError {
-    //Returned when it connection to gateway has failed
+    /// Returned when the connection to gateway has failed
     CantConnectToGateway,
 
-    //Returned when unable to auathenticate to gateway
+    /// Returned when it is unable to authenticate
     AuthenticationFailed,
 
-    //Returned when connection is unexpected failed
+    /// Returned when connection has unexpected failed
     ConnectionClosed,
 
-    /// tungstenite
+    /// Tungstenite error
     TungsteniteError(tungstenite::error::Error),
 
-    /// Errors while sending in mpsc channel
+    /// Returned mpsc send channel error
     ChannelSend(SendError),
 
-    /// Returned when it receives a unknown message format
+    /// Returned when an unknown message format is received
     UnknownPayloadReceived,
 
-    /// Returned error from the Hass Gateway
+    /// Returned the error received from the Home Assistant Gateway
     ReponseError(WSResult),
 
-    /// others
+    /// Returned for errors which do not fit any above criterias
     Generic(String),
 }
 
