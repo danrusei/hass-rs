@@ -1,3 +1,5 @@
+//! API types.
+
 mod clientconfig;
 mod command;
 mod config;

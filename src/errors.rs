@@ -1,4 +1,5 @@
-//! # Hass error types
+//! Convenient error handling
+
 use crate::types::WSResult;
 
 use async_tungstenite::tungstenite;
@@ -31,7 +32,7 @@ pub enum HassError {
     /// Returned the error received from the Home Assistant Gateway
     ReponseError(WSResult),
 
-    /// Returned for errors which do not fit any above criterias
+    /// Returned for errors which do not fit any of the above criterias
     Generic(String),
 }
 

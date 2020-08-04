@@ -1,6 +1,8 @@
 use serde_derive::Deserialize;
 
-//This is the HassConfig
+/// This object represents the Home Assistant Config
+/// 
+/// [Fetch Config](https://developers.home-assistant.io/docs/api/websocket/#fetching-config)
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassConfig {
     latitude: f32,
@@ -20,7 +22,7 @@ pub struct HassConfig {
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct UnitSystem {
+pub(crate) struct UnitSystem {
     length: String,
     mass: String,
     pressure: String,
