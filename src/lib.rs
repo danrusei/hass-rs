@@ -9,7 +9,7 @@ pub mod types;
 mod wsconn;
 
 use crate::errors::{HassError, HassResult};
-use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ask, Response, WSEvent, HassEntity, HassService};
+use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ask, Response, WSEvent, HassEntity, HassServices};
 use crate::wsconn::WsConn;
 
 use futures::StreamExt;
@@ -190,7 +190,7 @@ impl HassClient {
             }
     
     }
-    pub async fn get_services(&mut self) -> HassResult<HassService> {
+    pub async fn get_services(&mut self) -> HassResult<HassServices> {
         //Send GetStates command and expect a number of Entities
         let services_req = Command::GetServices(Ask {
             id: Some(0),
@@ -208,7 +208,7 @@ impl HassClient {
                  match data.success {
                      true => {
                         //TODO handle the error properly 
-                        let services: HassService = serde_json::from_value(data.result.unwrap()).unwrap();
+                        let services: HassServices = serde_json::from_value(data.result.unwrap()).unwrap();
                         return Ok(services)
                      }
                      false => return Err(HassError::ReponseError(data)),

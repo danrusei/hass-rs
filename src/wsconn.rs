@@ -320,7 +320,7 @@ async fn receiver_loop(
             match stream.next().await {
                 Some(Ok(item)) => match item {
                     TungsteniteMessage::Text(data) => {
-                        info!("{}", data);
+                       // info!("{}", data);
 
                         //Serde: The tag identifying which variant we are dealing with is now inside of the content,
                         // next to any other fields of the variant
