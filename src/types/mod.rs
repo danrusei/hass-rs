@@ -1,15 +1,15 @@
 mod clientconfig;
 mod command;
 mod config;
-mod events;
-mod services;
 mod entities;
+mod events;
 mod response;
+mod services;
 
 pub use clientconfig::*;
 pub use command::*;
 pub use config::*;
-pub use events::*;
-pub use services::*;
 pub use entities::*;
+pub use events::*;
 pub use response::*;
+pub use services::*;

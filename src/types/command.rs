@@ -1,5 +1,6 @@
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use serde::Serialize;
+use serde_json::Value;
 
 #[derive(Debug)]
 pub enum Command {
@@ -93,5 +94,5 @@ pub struct CallService {
     pub(crate) msg_type: String,
     pub(crate) domain: String,
     pub(crate) service: String,
-    pub(crate) service_data: Option<String>,
+    pub(crate) service_data: Option<Value>,
 }

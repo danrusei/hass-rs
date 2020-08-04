@@ -1,6 +1,7 @@
 use env_logger;
 use hass_rs::types::ConnConfig;
 use hass_rs::HassClient;
+use serde_json::json;
 
 static TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI0YzcyOGFjNDQ4MTc0NWIwODUxY2ZjMGE5YTc2ZWE1NSIsImlhdCI6MTU5NTIzNDYwMiwiZXhwIjoxOTEwNTk0NjAyfQ.Ow-mSTKNUSyqcJJrSBMYy6ftKMiTEwhMl-uhtBxln80";
 
@@ -29,15 +30,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
-    let service_data = String::from(r#""{ "entity_id": "group.kitchen" }""#);
+    let value = json!({
+        "entity_id": "sun.sun"
+    });
 
-    match client.call_service("homeassistant".to_owned(), "update_entity".to_owned(), Some(service_data)).await {
+    match client
+        .call_service(
+            "homeassistant".to_owned(),
+            "update_entity".to_owned(),
+            Some(value),
+        )
+        .await
+    {
         Ok(done) if done == String::from("command executed successfully") => {
             println!("Good, your command was executed")
         }
         Ok(_) => println!("Ooops, I got strange result"),
-        Err(error) => println!("Ooops, I got this error {}", error)
-
+        Err(error) => println!("Ooops, I got this error {}", error),
     }
 
     Ok(())

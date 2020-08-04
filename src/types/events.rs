@@ -1,5 +1,5 @@
+use crate::types::{Context, HassEntity};
 use serde_derive::Deserialize;
-use crate::types::{HassEntity, Context};
 
 //This constructed against StateChangedEvent, may not be compatible with other event types
 //TODO try out other type of events
@@ -18,4 +18,3 @@ pub struct EventData {
     new_state: Option<HassEntity>,
     old_state: Option<HassEntity>,
 }
-

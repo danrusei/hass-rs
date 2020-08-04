@@ -9,10 +9,14 @@ pub mod types;
 mod wsconn;
 
 use crate::errors::{HassError, HassResult};
-use crate::types::{Auth, Command, HassConfig, ConnConfig, ConnectionOptions, Ask, Response, WSEvent, HassEntity, HassServices, CallService};
+use crate::types::{
+    Ask, Auth, CallService, Command, ConnConfig, ConnectionOptions, HassConfig, HassEntity,
+    HassServices, Response, WSEvent,
+};
 use crate::wsconn::WsConn;
 
 use futures::StreamExt;
+use serde_json::Value;
 use url;
 
 // Client defines client connection
@@ -143,20 +147,21 @@ impl HassClient {
             .expect("no gateway found")
             .command(config_req)
             .await?;
-        
-            match response {
-                Response::Result(data) => {
-                 match data.success {
-                     true => {
-                        //TODO handle the error properly 
-                        let config: HassConfig = serde_json::from_value(data.result.unwrap()).unwrap();
-                        return Ok(config)
-                     }
-                     false => return Err(HassError::ReponseError(data)),
-                 }
+
+        match response {
+            Response::Result(data) => {
+                match data.success {
+                    true => {
+                        //TODO handle the error properly
+                        let config: HassConfig =
+                            serde_json::from_value(data.result.unwrap()).unwrap();
+                        return Ok(config);
+                    }
+                    false => return Err(HassError::ReponseError(data)),
+                }
             }
-                _ => return Err(HassError::UnknownPayloadReceived),
-            }
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
     }
 
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
@@ -172,23 +177,23 @@ impl HassClient {
             .command(states_req)
             .await?;
 
-            // TODO - problem Entity atributes could be different, so this is wrong
-            // have to make it Value, and based on entity_id deserialize differently
-            // maybe this has to be handled by the user, add to example folder
-            match response {
-                Response::Result(data) => {
-                 match data.success {
-                     true => {
-                        //TODO handle the error properly 
-                        let states: Vec<HassEntity> = serde_json::from_value(data.result.unwrap()).unwrap();
-                        return Ok(states)
-                     }
-                     false => return Err(HassError::ReponseError(data)),
-                 }
+        // TODO - problem Entity atributes could be different, so this is wrong
+        // have to make it Value, and based on entity_id deserialize differently
+        // maybe this has to be handled by the user, add to example folder
+        match response {
+            Response::Result(data) => {
+                match data.success {
+                    true => {
+                        //TODO handle the error properly
+                        let states: Vec<HassEntity> =
+                            serde_json::from_value(data.result.unwrap()).unwrap();
+                        return Ok(states);
+                    }
+                    false => return Err(HassError::ReponseError(data)),
+                }
             }
-                _ => return Err(HassError::UnknownPayloadReceived),
-            }
-    
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
     }
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
         //Send GetStates command and expect a number of Entities
@@ -202,22 +207,28 @@ impl HassClient {
             .expect("no gateway found")
             .command(services_req)
             .await?;
-        
-            match response {
-                Response::Result(data) => {
-                 match data.success {
-                     true => {
-                        //TODO handle the error properly 
-                        let services: HassServices = serde_json::from_value(data.result.unwrap()).unwrap();
-                        return Ok(services)
-                     }
-                     false => return Err(HassError::ReponseError(data)),
-                 }
+
+        match response {
+            Response::Result(data) => {
+                match data.success {
+                    true => {
+                        //TODO handle the error properly
+                        let services: HassServices =
+                            serde_json::from_value(data.result.unwrap()).unwrap();
+                        return Ok(services);
+                    }
+                    false => return Err(HassError::ReponseError(data)),
+                }
             }
-                _ => return Err(HassError::UnknownPayloadReceived),
+            _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
-    pub async fn call_service(&mut self, domain: String, service: String, service_data: Option<String>) -> HassResult<String> {
+    pub async fn call_service(
+        &mut self,
+        domain: String,
+        service: String,
+        service_data: Option<Value>,
+    ) -> HassResult<String> {
         //Send GetStates command and expect a number of Entities
         let services_req = Command::CallService(CallService {
             id: Some(0),
@@ -232,17 +243,13 @@ impl HassClient {
             .expect("no gateway found")
             .command(services_req)
             .await?;
-        
-            match response {
-                Response::Result(data) => {
-                 match data.success {
-                     true => {
-                        return Ok("command executed successfully".to_owned())
-                     }
-                     false => return Err(HassError::ReponseError(data)),
-                 }
-            }
-                _ => return Err(HassError::UnknownPayloadReceived),
-            }
+
+        match response {
+            Response::Result(data) => match data.success {
+                true => return Ok("command executed successfully".to_owned()),
+                false => return Err(HassError::ReponseError(data)),
+            },
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
     }
 }

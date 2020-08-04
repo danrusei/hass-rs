@@ -10,10 +10,10 @@ cargo run --example example_1
 ## Development status
 
 - [x] Create the client
-    - [ ] Automatic reconnection
+    - [ ] Automatic reconnection (in progress)
     - [x] Authenticate using long-lived access tokens
-    - [ ] Authenticate using OAuth2
-- [ ] Call a service
+    - [ ] Authenticate using OAuth2 (in progress)
+- [x] Call a service
 - [x] Subscribe
     - [x] Events
     - [ ] Config (you need this?, raise an Issue)
