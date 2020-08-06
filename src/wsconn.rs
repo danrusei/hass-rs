@@ -1,5 +1,4 @@
-use crate::errors::{HassError, HassResult};
-use crate::runtime::{connect_async, task, WebSocket};
+use crate::{HassError, HassResult, connect_async, task, WebSocket};
 use crate::types::{Command, Response, Subscribe, Unsubscribe, WSEvent};
 
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
@@ -9,7 +8,7 @@ use futures::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
-use log::info;
+//use log::info;
 use std::collections::HashMap;
 
 use std::sync::{
