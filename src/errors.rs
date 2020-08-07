@@ -17,6 +17,9 @@ pub enum HassError {
     /// Returned when it is unable to authenticate
     AuthenticationFailed,
 
+    /// Returned when unable to parse the websocket server address
+    WrongAddressProvided(url::ParseError),
+
     /// Returned when connection has unexpected failed
     ConnectionClosed,
 
@@ -44,6 +47,7 @@ impl fmt::Display for HassError {
             Self::CantConnectToGateway => write!(f, "Cannot connect to gateway"),
             Self::ConnectionClosed => write!(f, "Connection closed unexpectedly"),
             Self::AuthenticationFailed => write!(f, "Authentication has failed"),
+            Self::WrongAddressProvided(e) => write!(f, "Could not parse the provided address: {}", e),
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
             Self::ChannelSend(e) => write!(f, "Channel Send Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
@@ -63,6 +67,12 @@ impl From<SendError> for HassError {
         match error {
             _ => HassError::ChannelSend(error),
         }
+    }
+}
+
+impl From<url::ParseError> for HassError {
+    fn from(error: url::ParseError) -> Self {
+        HassError::WrongAddressProvided(error)
     }
 }
 

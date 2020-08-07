@@ -1,47 +1,38 @@
-use crate::{WsConn,HassError, HassResult};
 use crate::types::{
-    Ask, Auth, CallService, Command, ConnConfig, ConnectionOptions, HassConfig, HassEntity,
-    HassServices, Response, WSEvent,
+    Ask, Auth, CallService, Command, HassConfig, HassEntity, HassServices, Response,
+    WSEvent,
 };
+use crate::{HassError, HassResult, WsConn};
 
 use futures::StreamExt;
 use serde_json::Value;
 use url;
 
-// Client defines client connection
+/// Established connection with a Home Assistant WebSocket server.
+///
+/// Backed by async_tungstenite, that provides async Websocket bindings,
+/// that can be used with non-blocking/asynchronous TcpStreams.
+/// It Supports both "async-std" and "tokio" runtimes.
+///
+/// Requests are issued using the various methods of `Client`.  
 pub struct HassClient {
-    pub(crate) opts: ConnectionOptions,
-    pub(crate) token: String,
-    pub(crate) gateway: Option<WsConn>,
+    pub(crate) gateway: WsConn,
+}
+
+/// create websocket connection to Home Assistant server
+pub async fn connect(host: &str, port: u16) -> HassResult<HassClient> {
+    let addr = format!("ws://{}:{}/api/websocket", host, port);
+    let url = url::Url::parse(&addr)?;
+    let gateway = WsConn::connect(url).await?;
+    Ok(HassClient { gateway })
 }
 
 impl HassClient {
-    //Create a new Hass Client
-    pub fn new(config: ConnConfig) -> Self {
-        HassClient {
-            opts: ConnectionOptions {
-                host: config.host,
-                port: config.port,
-                ssl: false,
-            },
-            token: config.token,
-            gateway: None,
-        }
-    }
-
-    pub async fn connect(&mut self) -> HassResult<()> {
-        let url = url::Url::parse(&self.create_url()).expect("failed to parse the url");
-        self.gateway = Some(WsConn::connect(url).await?);
-        self.authenticate().await?;
-        Ok(())
-    }
-
-    async fn authenticate(&mut self) -> HassResult<()> {
+    /// client.auth(TOKEN) try to authenticate the session with a long-lived access token
+    pub async fn auth(&mut self, token: &str) -> HassResult<()> {
         // Auth Request from Gateway { "type": "auth_required"}
         let _ = self
             .gateway
-            .as_mut()
-            .expect("No gateway provided")
             .from_gateway
             .next()
             .await
@@ -50,14 +41,9 @@ impl HassClient {
         //Authenticate with Command::AuthInit and payload {"type": "auth", "access_token": "XXXXX"}
         let auth_req = Command::AuthInit(Auth {
             msg_type: "auth".to_owned(),
-            access_token: self.token.to_owned(),
+            access_token: token.to_owned(),
         });
-        let response = self
-            .gateway
-            .as_mut()
-            .expect("No gateway found")
-            .command(auth_req)
-            .await?;
+        let response = self.gateway.command(auth_req).await?;
 
         //Check if the authetication was succefully, should receive {"type": "auth_ok"}
         match response {
@@ -72,31 +58,13 @@ impl HassClient {
         // }
     }
 
-    pub fn with_ssl(mut self) -> HassClient {
-        self.opts.ssl = true;
-        self
-    }
-
-    fn create_url(&self) -> String {
-        let protocol = if self.opts.ssl { "wss" } else { "ws" };
-        format!(
-            "{}://{}:{}/api/websocket",
-            protocol, self.opts.host, self.opts.port
-        )
-    }
-
     pub async fn ping(&mut self) -> HassResult<String> {
         //Send Ping command and expect Pong
         let ping_req = Command::Ping(Ask {
             id: Some(0),
             msg_type: "ping".to_owned(),
         });
-        let response = self
-            .gateway
-            .as_mut()
-            .expect("no gateway found")
-            .command(ping_req)
-            .await?;
+        let response = self.gateway.command(ping_req).await?;
 
         //Check the response, if the Pong was received
         match response {
@@ -110,18 +78,10 @@ impl HassClient {
     where
         F: Fn(WSEvent) + Send + 'static,
     {
-        self.gateway
-            .as_mut()
-            .expect("no gateway found")
-            .subscribe_message(event_name, callback)
-            .await
+        self.gateway.subscribe_message(event_name, callback).await
     }
     pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
-        self.gateway
-            .as_mut()
-            .expect("no gateway found")
-            .unsubscribe_message(subscription_id)
-            .await
+        self.gateway.unsubscribe_message(subscription_id).await
     }
 
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
@@ -130,12 +90,7 @@ impl HassClient {
             id: Some(0),
             msg_type: "get_config".to_owned(),
         });
-        let response = self
-            .gateway
-            .as_mut()
-            .expect("no gateway found")
-            .command(config_req)
-            .await?;
+        let response = self.gateway.command(config_req).await?;
 
         match response {
             Response::Result(data) => {
@@ -159,12 +114,7 @@ impl HassClient {
             id: Some(0),
             msg_type: "get_states".to_owned(),
         });
-        let response = self
-            .gateway
-            .as_mut()
-            .expect("no gateway found")
-            .command(states_req)
-            .await?;
+        let response = self.gateway.command(states_req).await?;
 
         // TODO - problem Entity atributes could be different, so this is wrong
         // have to make it Value, and based on entity_id deserialize differently
@@ -190,12 +140,7 @@ impl HassClient {
             id: Some(0),
             msg_type: "get_services".to_owned(),
         });
-        let response = self
-            .gateway
-            .as_mut()
-            .expect("no gateway found")
-            .command(services_req)
-            .await?;
+        let response = self.gateway.command(services_req).await?;
 
         match response {
             Response::Result(data) => {
@@ -226,12 +171,7 @@ impl HassClient {
             service,
             service_data,
         });
-        let response = self
-            .gateway
-            .as_mut()
-            .expect("no gateway found")
-            .command(services_req)
-            .await?;
+        let response = self.gateway.command(services_req).await?;
 
         match response {
             Response::Result(data) => match data.success {

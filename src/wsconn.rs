@@ -1,5 +1,5 @@
-use crate::{HassError, HassResult, connect_async, task, WebSocket};
 use crate::types::{Command, Response, Subscribe, Unsubscribe, WSEvent};
+use crate::{connect_async, task, HassError, HassResult, WebSocket};
 
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use futures::channel::mpsc::{channel, Receiver, Sender};
