@@ -1,5 +1,8 @@
 use serde_derive::Deserialize;
 
+/// This object represents the Home Assistant Entity
+///
+/// [Entity](https://developers.home-assistant.io/docs/core/entity/)
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassEntity {
     entity_id: String,
@@ -10,6 +13,7 @@ pub struct HassEntity {
     context: Context,
 }
 
+///	This is part of HassEntity 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassEntityAttributeBase {
     #[serde(default)]
@@ -30,6 +34,7 @@ pub struct HassEntityAttributeBase {
     device_class: String,
 }
 
+/// General construct used by HassEntity and HassEvent
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Context {
     pub(crate) id: String,

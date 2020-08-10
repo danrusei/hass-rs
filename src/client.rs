@@ -1,3 +1,7 @@
+//! Home Assistant client implementation
+//!
+//! Provides an async connect and methods for issuing the supported commands.
+
 use crate::types::{
     Ask, Auth, CallService, Command, HassConfig, HassEntity, HassServices, Response,
     WSEvent,
@@ -19,7 +23,7 @@ pub struct HassClient {
     pub(crate) gateway: WsConn,
 }
 
-/// create websocket connection to Home Assistant server
+/// establish the websocket connection to Home Assistant server
 pub async fn connect(host: &str, port: u16) -> HassResult<HassClient> {
     let addr = format!("ws://{}:{}/api/websocket", host, port);
     let url = url::Url::parse(&addr)?;
@@ -28,7 +32,24 @@ pub async fn connect(host: &str, port: u16) -> HassResult<HassClient> {
 }
 
 impl HassClient {
-    /// client.auth(TOKEN) try to authenticate the session with a long-lived access token
+    /// authenticate the session using a long-lived access token
+    /// 
+    /// When a client connects to the server, the server sends out auth_required.
+    /// The first message from the client should be an auth message. You can authorize with an access token.
+    /// If the client supplies valid authentication, the authentication phase will complete by the server sending the auth_ok message. 
+    /// If the data is incorrect, the server will reply with auth_invalid message and disconnect the session.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn auth(&mut self, token: &str) -> HassResult<()> {
         // Auth Request from Gateway { "type": "auth_required"}
         let _ = self
@@ -58,6 +79,20 @@ impl HassClient {
         // }
     }
 
+    ///The API supports receiving a ping from the client and returning a pong. 
+    /// This serves as a heartbeat to ensure the connection is still alive.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn ping(&mut self) -> HassResult<String> {
         //Send Ping command and expect Pong
         let ping_req = Command::Ping(Ask {
@@ -74,16 +109,67 @@ impl HassClient {
         }
     }
 
+    ///The command subscribe_event will subscribe your client to the event bus. 
+    /// 
+    /// You can either listen to all events or to a specific event type. 
+    /// If you want to listen to multiple event types, you will have to send multiple subscribe_events commands.
+    /// The server will respond with a result message to indicate that the subscription is active.
+    /// For each event that matches, the server will send a message of type event. 
+    /// The id in the message will point at the original id of the listen_event command.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F) -> HassResult<String>
     where
         F: Fn(WSEvent) + Send + 'static,
     {
         self.gateway.subscribe_message(event_name, callback).await
     }
+
+    ///The command unsubscribe_event will unsubscribe your client from the event bus.
+    /// 
+    /// You can unsubscribe from previously created subscription events. 
+    /// Pass the id of the original subscription command as value to the subscription field.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
         self.gateway.unsubscribe_message(subscription_id).await
     }
 
+    ///This will get a dump of the current config in Home Assistant.
+    /// 
+    /// The server will respond with a result message containing the config.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
         //Send GetConfig command and expect Pong
         let config_req = Command::GetConfig(Ask {
@@ -108,6 +194,21 @@ impl HassClient {
         }
     }
 
+    ///This will get a dump of all the current states in Home Assistant.
+    /// 
+    /// The server will respond with a result message containing the states.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
         //Send GetStates command and expect a number of Entities
         let states_req = Command::GetStates(Ask {
@@ -134,6 +235,22 @@ impl HassClient {
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
+
+    ///This will get a dump of the current services in Home Assistant.
+    /// 
+    /// The server will respond with a result message containing the services.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
         //Send GetStates command and expect a number of Entities
         let services_req = Command::GetServices(Ask {
@@ -157,6 +274,24 @@ impl HassClient {
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
+
+    ///This will call a service in Home Assistant. Right now there is no return value. 
+    ///The client can listen to state_changed events if it is interested in changed entities as a result of a service call.
+    /// 
+    ///The server will indicate with a message indicating that the service is done executing.
+    ///
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     todo!()
+    /// }
+    /// ```
     pub async fn call_service(
         &mut self,
         domain: String,

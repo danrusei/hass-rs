@@ -2,8 +2,9 @@ use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use serde::Serialize;
 use serde_json::Value;
 
+/// This enum defines the type of commands that the client is allowed to send to the Websocket server 
 #[derive(Debug)]
-pub enum Command {
+pub(crate) enum Command {
     AuthInit(Auth),
     Ping(Ask),
     SubscribeEvent(Subscribe),
@@ -57,38 +58,43 @@ impl Command {
     }
 }
 
+//used to authenticate the session 
 #[derive(Debug, Serialize, PartialEq)]
-pub struct Auth {
+pub(crate) struct Auth {
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) access_token: String,
 }
 
+//used to fetch from server
 #[derive(Debug, Serialize, PartialEq)]
-pub struct Ask {
+pub(crate) struct Ask {
     pub(crate) id: Option<u64>,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
 }
 
+//used for Event subscribtion
 #[derive(Debug, Serialize, PartialEq)]
-pub struct Subscribe {
+pub(crate) struct Subscribe {
     pub(crate) id: Option<u64>,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) event_type: String,
 }
 
+//used for Event Unsubscribe
 #[derive(Debug, Serialize, PartialEq)]
-pub struct Unsubscribe {
+pub(crate) struct Unsubscribe {
     pub(crate) id: Option<u64>,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,
     pub(crate) subscription: u64,
 }
 
+//used to call a service
 #[derive(Debug, Serialize, PartialEq)]
-pub struct CallService {
+pub(crate) struct CallService {
     pub(crate) id: Option<u64>,
     #[serde(rename = "type")]
     pub(crate) msg_type: String,

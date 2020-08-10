@@ -7,7 +7,7 @@ mod events;
 mod response;
 mod services;
 
-pub use command::*;
+pub(crate) use command::*;
 pub use config::*;
 pub use entities::*;
 pub use events::*;

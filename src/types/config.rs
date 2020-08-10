@@ -2,6 +2,7 @@ use serde_derive::Deserialize;
 
 /// This object represents the Home Assistant Config
 ///
+/// This will get a dump of the current config in Home Assistant.
 /// [Fetch Config](https://developers.home-assistant.io/docs/api/websocket/#fetching-config)
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassConfig {

@@ -18,8 +18,8 @@ use std::sync::{
 use url;
 
 pub struct WsConn {
-    //message sequence required by the Websocket server
-    last_sequence: Arc<AtomicU64>,
+    //message sequence required by the Websocket server, I may need this field on recconect
+    //last_sequence: Arc<AtomicU64>,
 
     //Client --> Gateway (send "Commands" msg to the Gateway)
     pub(crate) to_gateway: Sender<Command>,
@@ -70,7 +70,7 @@ impl WsConn {
         };
 
         Ok(WsConn {
-            last_sequence,
+            //last_sequence,
             to_gateway,
             from_gateway,
             event_listeners,
@@ -150,6 +150,7 @@ impl WsConn {
     }
 }
 
+//listen for client commands and transform those to TungsteniteMessage and send to gateway
 async fn sender_loop(
     last_sequence: Arc<AtomicU64>,
     mut sink: SplitSink<WebSocket, TungsteniteMessage>,
@@ -327,6 +328,7 @@ async fn sender_loop(
     Ok(())
 }
 
+//listen for gateway responses and either send to client the response or execute the defined closure for Event subscribtion
 async fn receiver_loop(
     //    last_sequence: Arc<AtomicU64>,
     mut stream: SplitStream<WebSocket>,
