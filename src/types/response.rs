@@ -24,7 +24,7 @@ pub(crate) enum Response {
     Close(String),
 }
 
-// this is the first message received from websocket, 
+// this is the first message received from websocket,
 // that ask to provide a authetication method
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -49,7 +49,7 @@ pub(crate) struct AuthOk {
 pub(crate) struct AuthInvalid {
     // #[serde(rename = "type")]
     // pub(crate) msg_type: String,
-    pub(crate) ha_version: String,
+    pub(crate) message: String,
 }
 
 // this is received as a response to a ping request
@@ -60,9 +60,8 @@ pub(crate) struct WSPong {
     // pub(crate) msg_type: String,
 }
 
-
 ///	This object represents the Home Assistant Event
-/// 
+///
 /// received when the client is subscribed to
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)
 #[derive(Debug, Deserialize, PartialEq)]
@@ -74,7 +73,7 @@ pub struct WSEvent {
 }
 
 ///this is the general response from the Websocket server when a requesthas been sent
-/// 
+///
 /// if "success" is true, then the "result" can be checked
 /// if "suceess" is false, then the "error" should be further explored
 #[derive(Debug, Deserialize, PartialEq)]

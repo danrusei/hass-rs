@@ -3,8 +3,7 @@
 //! Provides an async connect and methods for issuing the supported commands.
 
 use crate::types::{
-    Ask, Auth, CallService, Command, HassConfig, HassEntity, HassServices, Response,
-    WSEvent,
+    Ask, Auth, CallService, Command, HassConfig, HassEntity, HassServices, Response, WSEvent,
 };
 use crate::{HassError, HassResult, WsConn};
 
@@ -33,10 +32,10 @@ pub async fn connect(host: &str, port: u16) -> HassResult<HassClient> {
 
 impl HassClient {
     /// authenticate the session using a long-lived access token
-    /// 
+    ///
     /// When a client connects to the server, the server sends out auth_required.
     /// The first message from the client should be an auth message. You can authorize with an access token.
-    /// If the client supplies valid authentication, the authentication phase will complete by the server sending the auth_ok message. 
+    /// If the client supplies valid authentication, the authentication phase will complete by the server sending the auth_ok message.
     /// If the data is incorrect, the server will reply with auth_invalid message and disconnect the session.
     ///# Examples
     ///
@@ -69,6 +68,7 @@ impl HassClient {
         //Check if the authetication was succefully, should receive {"type": "auth_ok"}
         match response {
             Response::AuthOk(_) => Ok(()),
+            Response::AuthInvalid(err) => return Err(HassError::AuthenticationFailed(err.message)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
 
@@ -79,7 +79,7 @@ impl HassClient {
         // }
     }
 
-    ///The API supports receiving a ping from the client and returning a pong. 
+    ///The API supports receiving a ping from the client and returning a pong.
     /// This serves as a heartbeat to ensure the connection is still alive.
     ///# Examples
     ///
@@ -109,12 +109,12 @@ impl HassClient {
         }
     }
 
-    ///The command subscribe_event will subscribe your client to the event bus. 
-    /// 
-    /// You can either listen to all events or to a specific event type. 
+    ///The command subscribe_event will subscribe your client to the event bus.
+    ///
+    /// You can either listen to all events or to a specific event type.
     /// If you want to listen to multiple event types, you will have to send multiple subscribe_events commands.
     /// The server will respond with a result message to indicate that the subscription is active.
-    /// For each event that matches, the server will send a message of type event. 
+    /// For each event that matches, the server will send a message of type event.
     /// The id in the message will point at the original id of the listen_event command.
     ///# Examples
     ///
@@ -136,8 +136,8 @@ impl HassClient {
     }
 
     ///The command unsubscribe_event will unsubscribe your client from the event bus.
-    /// 
-    /// You can unsubscribe from previously created subscription events. 
+    ///
+    /// You can unsubscribe from previously created subscription events.
     /// Pass the id of the original subscription command as value to the subscription field.
     ///# Examples
     ///
@@ -156,7 +156,7 @@ impl HassClient {
     }
 
     ///This will get a dump of the current config in Home Assistant.
-    /// 
+    ///
     /// The server will respond with a result message containing the config.
     ///# Examples
     ///
@@ -195,7 +195,7 @@ impl HassClient {
     }
 
     ///This will get a dump of all the current states in Home Assistant.
-    /// 
+    ///
     /// The server will respond with a result message containing the states.
     ///# Examples
     ///
@@ -237,7 +237,7 @@ impl HassClient {
     }
 
     ///This will get a dump of the current services in Home Assistant.
-    /// 
+    ///
     /// The server will respond with a result message containing the services.
     ///# Examples
     ///
@@ -275,9 +275,9 @@ impl HassClient {
         }
     }
 
-    ///This will call a service in Home Assistant. Right now there is no return value. 
+    ///This will call a service in Home Assistant. Right now there is no return value.
     ///The client can listen to state_changed events if it is interested in changed entities as a result of a service call.
-    /// 
+    ///
     ///The server will indicate with a message indicating that the service is done executing.
     ///
     ///# Examples

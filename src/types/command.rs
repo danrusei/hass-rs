@@ -2,7 +2,7 @@ use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use serde::Serialize;
 use serde_json::Value;
 
-/// This enum defines the type of commands that the client is allowed to send to the Websocket server 
+/// This enum defines the type of commands that the client is allowed to send to the Websocket server
 #[derive(Debug)]
 pub(crate) enum Command {
     AuthInit(Auth),
@@ -58,7 +58,7 @@ impl Command {
     }
 }
 
-//used to authenticate the session 
+//used to authenticate the session
 #[derive(Debug, Serialize, PartialEq)]
 pub(crate) struct Auth {
     #[serde(rename = "type")]

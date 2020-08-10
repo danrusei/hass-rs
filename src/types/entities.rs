@@ -13,7 +13,7 @@ pub struct HassEntity {
     context: Context,
 }
 
-///	This is part of HassEntity 
+///	This is part of HassEntity
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassEntityAttributeBase {
     #[serde(default)]

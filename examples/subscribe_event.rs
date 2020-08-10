@@ -1,10 +1,11 @@
 use env_logger;
 use hass_rs::{client, WSEvent};
-use std::env::var;
 use lazy_static::lazy_static;
+use std::env::var;
 
 lazy_static! {
-    static ref TOKEN: String = var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
+    static ref TOKEN: String =
+        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
 }
 
 #[cfg_attr(feature = "async-std-runtime", async_std::main)]
