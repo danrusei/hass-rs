@@ -77,6 +77,7 @@ impl WsConn {
         })
     }
 
+    //used to send commands and receive responses from the gasteway
     pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
         // Send the auth command to gateway
         self.to_gateway
@@ -94,6 +95,7 @@ impl WsConn {
         response
     }
 
+    //used to subscribe to the event and if the subscribtion succeded the callback is registered
     pub(crate) async fn subscribe_message<F>(
         &mut self,
         event_name: &str,
@@ -124,6 +126,7 @@ impl WsConn {
         }
     }
 
+    //used to unsubscribe the event and remove the registered callback
     pub(crate) async fn unsubscribe_message(&mut self, subscription_id: u64) -> HassResult<String> {
         //Unsubscribe the Event
         let unsubscribe_req = Command::Unsubscribe(Unsubscribe {

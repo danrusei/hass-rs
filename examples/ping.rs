@@ -1,8 +1,12 @@
 use env_logger;
 use hass_rs::client;
 use serde_json::json;
+use std::env::var;
+use lazy_static::lazy_static;
 
-static TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI0YzcyOGFjNDQ4MTc0NWIwODUxY2ZjMGE5YTc2ZWE1NSIsImlhdCI6MTU5NTIzNDYwMiwiZXhwIjoxOTEwNTk0NjAyfQ.Ow-mSTKNUSyqcJJrSBMYy6ftKMiTEwhMl-uhtBxln80";
+lazy_static! {
+    static ref TOKEN: String = var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
+}
 
 #[cfg_attr(feature = "async-std-runtime", async_std::main)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Creating the Websocket Client and Authenticate the session");
     let mut client = client::connect("localhost", 8123).await?;
 
-    client.auth(TOKEN).await?;
+    client.auth(&*TOKEN).await?;
     println!("WebSocket connection and authethication works");
 
     println!("Sending a Ping command and waiting for Pong");
