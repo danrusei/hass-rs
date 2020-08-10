@@ -86,13 +86,11 @@ impl WsConn {
             .map_err(|_| HassError::ConnectionClosed)?;
 
         // Receive auth response event from the gateway
-        let response = self
+        self
             .from_gateway
             .next()
             .await
-            .ok_or_else(|| HassError::ConnectionClosed)?;
-
-        response
+            .ok_or_else(|| HassError::ConnectionClosed)?
     }
 
     //used to subscribe to the event and if the subscribtion succeded the callback is registered
@@ -157,11 +155,13 @@ impl WsConn {
 async fn sender_loop(
     last_sequence: Arc<AtomicU64>,
     mut sink: SplitSink<WebSocket, TungsteniteMessage>,
-    mut from_client: Receiver<Command>,
+    from_client: Receiver<Command>,
 ) -> HassResult<()> {
     task::spawn(async move {
+        //Fuse the stream such that poll_next will never again be called once it has finished. 
+        let mut fused = from_client.fuse();
         loop {
-            match from_client.next().await {
+            match fused.next().await {
                 Some(item) => match item {
                     Command::Close => {
                         return sink
