@@ -43,7 +43,7 @@ impl WsConn {
         let (to_gateway, from_client) = channel::<Command>(20);
 
         //Channels to receive the Response from the Websocket server and send it over to the Client
-        let (to_client, from_gateway) = channel::<HassResult<Response>>(20);
+        let (mut to_client, from_gateway) = channel::<HassResult<Response>>(20);
 
         let last_sequence = Arc::new(AtomicU64::new(1));
         let last_sequence_clone_sender = Arc::clone(&last_sequence);
@@ -54,8 +54,8 @@ impl WsConn {
 
         // Client --> Gateway
         if let Err(e) = sender_loop(last_sequence_clone_sender, sink, from_client).await {
-            //TODO - properly handle the Errors
-            return Err(e);
+            to_client.send(Err(HassError::from(e))).await?
+            //return Err(e);
         }
 
         //Gateway --> Client
@@ -173,21 +173,11 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::AuthInit(auth).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
 
-                        // Send command to gateway
-                        // if let Err(e) = sink.send(TungsteniteMessage::Text(item)).await {
-                        //     let mut sender = guard.remove(&msg.0).unwrap();
-                        //     sender
-                        //         .send(Err(HassError::from(e)))
-                        //         .await
-                        //         .expect("Failed to send error");
-                        // };
                     }
                     Command::Ping(mut ping) => {
                         // Increase the last sequence and use the previous value in the request
@@ -201,12 +191,10 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::Ping(ping).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned, see above
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
                     }
                     Command::SubscribeEvent(mut subscribe) => {
                         // Increase the last sequence and use the previous value in the request
@@ -220,12 +208,10 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::SubscribeEvent(subscribe).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned, see above
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
                     }
                     Command::Unsubscribe(mut unsubscribe) => {
                         // Increase the last sequence and use the previous value in the request
@@ -239,12 +225,10 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::Unsubscribe(unsubscribe).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned, see above
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
                     }
                     Command::GetConfig(mut getconfig) => {
                         // Increase the last sequence and use the previous value in the request
@@ -258,12 +242,10 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::GetConfig(getconfig).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned, see above
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
                     }
                     Command::GetStates(mut getstates) => {
                         // Increase the last sequence and use the previous value in the request
@@ -277,12 +259,10 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::GetStates(getstates).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned, see above
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
                     }
                     Command::GetServices(mut getservices) => {
                         // Increase the last sequence and use the previous value in the request
@@ -296,12 +276,10 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::GetServices(getservices).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned, see above
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
                     }
                     Command::CallService(mut callservice) => {
                         // Increase the last sequence and use the previous value in the request
@@ -315,12 +293,10 @@ async fn sender_loop(
                         // Transform command to TungsteniteMessage
                         let cmd = Command::CallService(callservice).to_tungstenite_message();
 
-                        // Send command to gateway
-                        // NOT GOOD as it is not returned, see above
-                        sink.send(cmd)
-                            .await
-                            .map_err(|_| HassError::ConnectionClosed)
-                            .unwrap();
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {        
+                            return Err(HassError::from(e))
+                        }
                     }
                 },
                 None => {}
