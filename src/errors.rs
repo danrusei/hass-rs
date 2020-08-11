@@ -55,7 +55,7 @@ impl fmt::Display for HassError {
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
             Self::ReponseError(e) => write!(
                 f,
-                "The error code reveiced is {} and the error message {}",
+                "The error code:{} with the error message: {}",
                 e.error.as_ref().unwrap().code,
                 e.error.as_ref().unwrap().message
             ),

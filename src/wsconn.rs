@@ -151,6 +151,14 @@ impl WsConn {
     }
 }
 
+fn get_last_seq(last_sequence: &Arc<AtomicU64>) -> Option<u64> {
+    // Increase the last sequence and use the previous value in the request
+    match last_sequence.fetch_add(1, Ordering::Relaxed) {
+        0 => None,
+        v => Some(v),
+    }
+}
+
 //listen for client commands and transform those to TungsteniteMessage and send to gateway
 async fn sender_loop(
     last_sequence: Arc<AtomicU64>,
@@ -180,13 +188,8 @@ async fn sender_loop(
 
                     }
                     Command::Ping(mut ping) => {
-                        // Increase the last sequence and use the previous value in the request
-                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                            0 => None,
-                            v => Some(v),
-                        };
 
-                        ping.id = seq;
+                        ping.id = get_last_seq(&last_sequence);
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::Ping(ping).to_tungstenite_message();
@@ -197,13 +200,8 @@ async fn sender_loop(
                         }
                     }
                     Command::SubscribeEvent(mut subscribe) => {
-                        // Increase the last sequence and use the previous value in the request
-                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                            0 => None,
-                            v => Some(v),
-                        };
 
-                        subscribe.id = seq;
+                        subscribe.id = get_last_seq(&last_sequence);
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::SubscribeEvent(subscribe).to_tungstenite_message();
@@ -214,13 +212,8 @@ async fn sender_loop(
                         }
                     }
                     Command::Unsubscribe(mut unsubscribe) => {
-                        // Increase the last sequence and use the previous value in the request
-                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                            0 => None,
-                            v => Some(v),
-                        };
 
-                        unsubscribe.id = seq;
+                        unsubscribe.id = get_last_seq(&last_sequence);
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::Unsubscribe(unsubscribe).to_tungstenite_message();
@@ -231,13 +224,8 @@ async fn sender_loop(
                         }
                     }
                     Command::GetConfig(mut getconfig) => {
-                        // Increase the last sequence and use the previous value in the request
-                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                            0 => None,
-                            v => Some(v),
-                        };
 
-                        getconfig.id = seq;
+                        getconfig.id = get_last_seq(&last_sequence);
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::GetConfig(getconfig).to_tungstenite_message();
@@ -248,13 +236,8 @@ async fn sender_loop(
                         }
                     }
                     Command::GetStates(mut getstates) => {
-                        // Increase the last sequence and use the previous value in the request
-                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                            0 => None,
-                            v => Some(v),
-                        };
 
-                        getstates.id = seq;
+                        getstates.id = get_last_seq(&last_sequence);
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::GetStates(getstates).to_tungstenite_message();
@@ -265,13 +248,8 @@ async fn sender_loop(
                         }
                     }
                     Command::GetServices(mut getservices) => {
-                        // Increase the last sequence and use the previous value in the request
-                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                            0 => None,
-                            v => Some(v),
-                        };
 
-                        getservices.id = seq;
+                        getservices.id = get_last_seq(&last_sequence);
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::GetServices(getservices).to_tungstenite_message();
@@ -282,13 +260,8 @@ async fn sender_loop(
                         }
                     }
                     Command::CallService(mut callservice) => {
-                        // Increase the last sequence and use the previous value in the request
-                        let seq = match last_sequence.fetch_add(1, Ordering::Relaxed) {
-                            0 => None,
-                            v => Some(v),
-                        };
 
-                        callservice.id = seq;
+                        callservice.id = get_last_seq(&last_sequence);
 
                         // Transform command to TungsteniteMessage
                         let cmd = Command::CallService(callservice).to_tungstenite_message();
