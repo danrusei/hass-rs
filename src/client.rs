@@ -43,13 +43,22 @@ impl HassClient {
     ///
     /// ```no_run
     /// use hass_rs::client;
+    /// use lazy_static::lazy_static;
+    /// use std::env::var;
+    /// 
+    /// lazy_static! {
+    ///     static ref TOKEN: String =
+    ///         var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
+    /// }
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken(&*TOKEN).await?;
+    ///     println!("WebSocket connection and authethication works");
     /// }
     /// ```
-    pub async fn auth(&mut self, token: &str) -> HassResult<()> {
+    pub async fn auth_with_longlivedtoken(&mut self, token: &str) -> HassResult<()> {
         // Auth Request from Gateway { "type": "auth_required"}
         let _ = self
             .gateway
@@ -88,9 +97,17 @@ impl HassClient {
     /// ```no_run
     /// use hass_rs::client;
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    /// 
+    /// //first you need to connect and autheticate the session, see above
+    /// 
+    ///     match client.ping().await? {
+    ///         pong if pong == String::from("pong") => {
+    ///             println!("Great the Hass Websocket Server responds to ping")
+    ///         }
+    ///         _ => println!("Ooops, I was expecting pong"),
+    ///     }
     /// }
     /// ```
     pub async fn ping(&mut self) -> HassResult<String> {
@@ -123,9 +140,20 @@ impl HassClient {
     /// ```no_run
     /// use hass_rs::client;
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    ///
+    /// //first you need to connect and autheticate the session, see above
+    /// 
+    ///     let pet = |item: WSEvent| {
+    ///         println!(
+    ///         "Closure is executed when the Event with the id: {} has been received, it was fired at {}", item.id,
+    ///         item.event.time_fired );
+    ///     };
+    ///     match client.subscribe_event("state_changed", pet).await {
+    ///         Ok(v) => println!("Event subscribed: {}", v),
+    ///         Err(err) => println!("Oh no, an error: {}", err),
+    ///     }
     /// }
     /// ```
     pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F) -> HassResult<String>
@@ -146,9 +174,16 @@ impl HassClient {
     /// ```no_run
     /// use hass_rs::client;
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    ///
+    /// //first you need to connect and autheticate the session, see above
+    /// //assuming the event subscription is present
+    ///  
+    ///     match client.unsubscribe_event(2).await {
+    ///         Ok(v) => println!("Succefully unsubscribed: {}", v),
+    ///         Err(err) => println!("Oh no, an error: {}", err),
+    ///     }
     /// }
     /// ```
     pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
@@ -165,9 +200,16 @@ impl HassClient {
     /// ```no_run
     /// use hass_rs::client;
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    ///
+    /// //first you need to connect and autheticate the session, see above
+    /// 
+    ///     println!("Get Hass Config");
+    ///     match client.get_config().await {
+    ///         Ok(v) => println!("{:?}", v),
+    ///         Err(err) => println!("Oh no, an error: {}", err),
+    ///     }
     /// }
     /// ```
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
@@ -204,9 +246,16 @@ impl HassClient {
     /// ```no_run
     /// use hass_rs::client;
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    ///
+    ///  //first you need to connect and autheticate the session, see above
+    /// 
+    ///     println!("Get Hass States");
+    ///     match client.get_states().await {
+    ///         Ok(v) => println!("{:?}", v),
+    ///         Err(err) => println!("Oh no, an error: {}", err),
+    ///     }
     /// }
     /// ```
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
@@ -246,9 +295,16 @@ impl HassClient {
     /// ```no_run
     /// use hass_rs::client;
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    ///
+    ///  //first you need to connect and autheticate the session, see above
+    /// 
+    ///     println!("Get Hass Services");
+    ///     match client.get_services().await {
+    ///         Ok(v) => println!("{:?}", v),
+    ///         Err(err) => println!("Oh no, an error: {}", err),
+    ///     }
     /// }
     /// ```
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
@@ -287,9 +343,29 @@ impl HassClient {
     /// ```no_run
     /// use hass_rs::client;
     ///
-    /// #[tokio::main]
+    /// #[async_std::main]
     /// async fn main() {
-    ///     todo!()
+    ///
+    ///  //first you need to connect and autheticate the session, see above
+    /// 
+    ///     let value = json!({
+    ///         "entity_id": "sun.sun"
+    ///     });
+    ///
+    ///     match client
+    ///         .call_service(
+    ///             "homeassistant".to_owned(),
+    ///             "update_entity".to_owned(),
+    ///             Some(value),
+    ///         )
+    ///         .await
+    ///     {
+    ///         Ok(done) if done == String::from("command executed successfully") => {
+    ///             println!("Good, your command was executed")
+    ///         }
+    ///         Ok(_) => println!("Ooops, I got strange result"),
+    ///         Err(error) => println!("Ooops, I got this error {}", error),
+    ///     }
     /// }
     /// ```
     pub async fn call_service(

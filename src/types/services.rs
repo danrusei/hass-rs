@@ -7,10 +7,13 @@ use std::collections::HashMap;
 /// This will get a dump of the current services in Home Assistant.
 /// [Fetch Services](https://developers.home-assistant.io/docs/api/websocket/#fetching-services)
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct HassServices(Domain);
+pub struct HassServices(pub Domain);
 
-type Domain = HashMap<String, ServiceName>;
-type ServiceName = HashMap<String, HassService>;
+/// This is part of HassServices
+pub type Domain = HashMap<String, ServiceName>;
+
+/// This is part of HassServices
+pub type ServiceName = HashMap<String, HassService>;
 
 /// This object represents the Home Assistant Service
 ///
@@ -18,15 +21,16 @@ type ServiceName = HashMap<String, HassService>;
 /// [Fetch Services](https://developers.home-assistant.io/docs/api/websocket/#fetching-services)
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassService {
-    description: String,
-    fields: FieldName,
+    pub description: String,
+    pub fields: FieldName,
 }
 
-type FieldName = HashMap<String, Field>;
+/// This is part of HassService
+pub type FieldName = HashMap<String, Field>;
 
 ///This is part of HassService
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Field {
-    description: String,
-    example: Value,
+    pub description: String,
+    pub example: Value,
 }
