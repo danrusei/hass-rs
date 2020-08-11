@@ -27,11 +27,10 @@ pub struct WsConn {
     //Gateway --> Client (receive "Response" msg from the Gateway)
     pub(crate) from_gateway: Receiver<HassResult<Response>>,
 
-    //Register all the events to be listen and its callback
-    //TODO intial form, but I can send a result like Box<dyn Fn(String) -> BoxFuture<'static, EventResult>
+    //Register all the events and their callback
+    //Should I modify the callback signature ? -- like Box<dyn Fn(WSEvent) -> BoxFuture<'static, EventResult>
     pub(crate) event_listeners: Arc<Mutex<HashMap<u64, Box<dyn Fn(WSEvent) + Send>>>>,
-    //TODO hashmap for Commands, is it needed ?
-    // so when I receive an response I can search both hashmap and know the type of event to json Deserialize
+    //Should I create a hashmap for Commands?, not clear if it's useful.
 }
 
 impl WsConn {
