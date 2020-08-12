@@ -1,11 +1,68 @@
 # Hass-Rs
 
-This is a websocket client Library written in Rust that can be used to integrate Home Assistant into your application. It communicates with the Home Assistant websocket API.
+A simple async Rust client library for interacting with Home Assistant websocket API.
 
+## Configure:
 
-## Usage:
+hass-rs supports tokio and async-std runtimes, by default it uses async-std, to use tokio change the feature flags in Cargo.toml
 
-cargo run --example example_1
+with [async-std](https://async.rs/) support 
+
+```toml
+[dependencies]
+hass-rs = { version = "0.1", features = ["async-std-runtime"] }
+```
+
+with [tokio](https://tokio.rs/) support 
+
+```toml
+[dependencies]
+hass-rs = { version = "0.1", features = ["tokio-runtime"] }
+```
+
+## API reference
+
+* **client::connect(host, port)** -- establish the websocket connection to Home Assistant server.
+* **client.auth_with_longlivedtoken(token)** - authenticate the session using a long-lived access token.
+* **client.ping()** - can serve as a heartbeat, to ensure the connection is still alive.
+* **client.subscribe_event(event_name, callback)** - subscribe the client to the event bus. the callback is a closure, of type Fn(WSEvent), which is executed every time when a specific event is received.
+* **client.unsubscribe_event(subscription_id)** - unsubscribe the client from the event bus.
+* **client.get_config()** - it gets a dump of the current config in Home Assistant.
+* **client.get_states()** - it gets a dump of all the current states in Home Assistant.
+* **client.get_services()** - it gets a dump of the current services in Home Assistant. 
+* **client.call_service(domain, service, service_data)** - it calls call a service in Home Assistant.
+
+## Example usage
+
+```rust
+use env_logger;
+use hass_rs::client;
+use lazy_static::lazy_static;
+use std::env::var;
+
+lazy_static! {
+    static ref TOKEN: String =
+        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
+}
+
+#[cfg_attr(feature = "async-std-runtime", async_std::main)]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+
+    println!("Creating the Websocket Client and Authenticate the session");
+    let mut client = client::connect("localhost", 8123).await?;
+
+    client.auth_with_longlivedtoken(&*TOKEN).await?;
+    println!("WebSocket connection and authethication works");
+
+    println!("Get Hass Config");
+    match client.get_config().await {
+        Ok(v) => println!("{:?}", v),
+        Err(err) => println!("Oh no, an error: {}", err),
+    }
+    Ok(())
+}
+```
 
 ## Development status
 
