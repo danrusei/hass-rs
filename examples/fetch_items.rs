@@ -8,6 +8,7 @@ lazy_static! {
         var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
 }
 
+//#[cfg_attr(feature = "tokio-runtime", tokio::main)]
 #[cfg_attr(feature = "async-std-runtime", async_std::main)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -24,6 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(err) => println!("Oh no, an error: {}", err),
     }
 
+    // tokio::time::delay_for(std::time::Duration::from_secs(2)).await;
     async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
     //TODO  iterate and find specific fields
@@ -33,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(err) => println!("Oh no, an error: {}", err),
     }
 
+    // tokio::time::delay_for(std::time::Duration::from_secs(2)).await;
     async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
     //TODO  iterate and find specific fields

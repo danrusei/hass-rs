@@ -17,14 +17,34 @@
 //!
 //!
 //! # Example usage
-//! It sends a ping and receive a pong
+//! It is fetching the Home Assistant Config
 //!
 //! ```rust
+//! use hass_rs::client;
+//! use lazy_static::lazy_static;
+//! use std::env::var;
+//!
+//! lazy_static! {
+//!     static ref TOKEN: String =
+//!         var("HASS_TOKEN").expect("need HASS_TOKEN environment variable");
+//! }
+//!
 //! #[async_std::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
-//!   TODO(Soon)
+//! // Create the websocket client and connect to gateway
+//!     let mut client = client::connect("localhost", 8123).await?;
 //!
+//! // Authenticate the session
+//!     client.auth_with_longlivedtoken(&*TOKEN).await?;
+//!     println!("WebSocket connection and authethication works");
+//!
+//! // Fetch the Home Assistant Config
+//!     println!("Get Hass Config");
+//!     match client.get_config().await {
+//!         Ok(v) => println!("{:?}", v),
+//!         Err(err) => println!("Oh no, an error: {}", err),
+//!     }
 //!     Ok(())
 //! }
 //! ```

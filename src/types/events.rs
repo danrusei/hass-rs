@@ -5,7 +5,7 @@ use serde_derive::Deserialize;
 ///
 /// received when the client is subscribed to
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)
-/// 
+///
 ///This is created against StateChangedEvent, may not work with other event types
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassEvent {

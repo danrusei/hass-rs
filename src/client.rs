@@ -43,19 +43,13 @@ impl HassClient {
     ///
     /// ```no_run
     /// use hass_rs::client;
-    /// use lazy_static::lazy_static;
-    /// use std::env::var;
-    /// 
-    /// lazy_static! {
-    ///     static ref TOKEN: String =
-    ///         var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
-    /// }
     ///
     /// #[async_std::main]
-    /// async fn main() {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>>{
     ///     let mut client = client::connect("localhost", 8123).await?;
-    ///     client.auth_with_longlivedtoken(&*TOKEN).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
     ///     println!("WebSocket connection and authethication works");
+    ///     Ok(())
     /// }
     /// ```
     pub async fn auth_with_longlivedtoken(&mut self, token: &str) -> HassResult<()> {
@@ -98,16 +92,18 @@ impl HassClient {
     /// use hass_rs::client;
     ///
     /// #[async_std::main]
-    /// async fn main() {
-    /// 
-    /// //first you need to connect and autheticate the session, see above
-    /// 
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
     ///     match client.ping().await? {
     ///         pong if pong == String::from("pong") => {
     ///             println!("Great the Hass Websocket Server responds to ping")
     ///         }
     ///         _ => println!("Ooops, I was expecting pong"),
-    ///     }
+    ///     };
+    ///     Ok(())
     /// }
     /// ```
     pub async fn ping(&mut self) -> HassResult<String> {
@@ -139,12 +135,14 @@ impl HassClient {
     ///
     /// ```no_run
     /// use hass_rs::client;
+    /// use hass_rs::WSEvent;
     ///
     /// #[async_std::main]
-    /// async fn main() {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
-    /// //first you need to connect and autheticate the session, see above
-    /// 
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
     ///     let pet = |item: WSEvent| {
     ///         println!(
     ///         "Closure is executed when the Event with the id: {} has been received, it was fired at {}", item.id,
@@ -154,6 +152,7 @@ impl HassClient {
     ///         Ok(v) => println!("Event subscribed: {}", v),
     ///         Err(err) => println!("Oh no, an error: {}", err),
     ///     }
+    ///     Ok(())
     /// }
     /// ```
     pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F) -> HassResult<String>
@@ -175,15 +174,17 @@ impl HassClient {
     /// use hass_rs::client;
     ///
     /// #[async_std::main]
-    /// async fn main() {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
-    /// //first you need to connect and autheticate the session, see above
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
     /// //assuming the event subscription is present
-    ///  
     ///     match client.unsubscribe_event(2).await {
     ///         Ok(v) => println!("Succefully unsubscribed: {}", v),
     ///         Err(err) => println!("Oh no, an error: {}", err),
     ///     }
+    ///     Ok(())
     /// }
     /// ```
     pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
@@ -201,15 +202,17 @@ impl HassClient {
     /// use hass_rs::client;
     ///
     /// #[async_std::main]
-    /// async fn main() {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
-    /// //first you need to connect and autheticate the session, see above
-    /// 
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
     ///     println!("Get Hass Config");
     ///     match client.get_config().await {
     ///         Ok(v) => println!("{:?}", v),
     ///         Err(err) => println!("Oh no, an error: {}", err),
     ///     }
+    ///     Ok(())
     /// }
     /// ```
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
@@ -247,15 +250,17 @@ impl HassClient {
     /// use hass_rs::client;
     ///
     /// #[async_std::main]
-    /// async fn main() {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>>{
     ///
-    ///  //first you need to connect and autheticate the session, see above
-    /// 
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
     ///     println!("Get Hass States");
     ///     match client.get_states().await {
     ///         Ok(v) => println!("{:?}", v),
     ///         Err(err) => println!("Oh no, an error: {}", err),
     ///     }
+    ///     Ok(())
     /// }
     /// ```
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
@@ -296,15 +301,17 @@ impl HassClient {
     /// use hass_rs::client;
     ///
     /// #[async_std::main]
-    /// async fn main() {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
-    ///  //first you need to connect and autheticate the session, see above
-    /// 
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
     ///     println!("Get Hass Services");
     ///     match client.get_services().await {
     ///         Ok(v) => println!("{:?}", v),
     ///         Err(err) => println!("Oh no, an error: {}", err),
     ///     }
+    ///     Ok(())
     /// }
     /// ```
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
@@ -342,12 +349,14 @@ impl HassClient {
     ///
     /// ```no_run
     /// use hass_rs::client;
+    /// use serde_json::json;
     ///
     /// #[async_std::main]
-    /// async fn main() {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
-    ///  //first you need to connect and autheticate the session, see above
-    /// 
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
     ///     let value = json!({
     ///         "entity_id": "sun.sun"
     ///     });
@@ -366,6 +375,7 @@ impl HassClient {
     ///         Ok(_) => println!("Ooops, I got strange result"),
     ///         Err(error) => println!("Ooops, I got this error {}", error),
     ///     }
+    ///     Ok(())
     /// }
     /// ```
     pub async fn call_service(

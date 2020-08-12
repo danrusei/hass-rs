@@ -34,6 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     async_std::task::sleep(std::time::Duration::from_secs(20)).await;
 
+    println!("Unsubscribe the Event");
+
     match client.unsubscribe_event(2).await {
         Ok(v) => println!("Succefully unsubscribed: {}", v),
         Err(err) => println!("Oh no, an error: {}", err),
