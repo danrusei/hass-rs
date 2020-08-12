@@ -224,17 +224,15 @@ impl HassClient {
         let response = self.gateway.command(config_req).await?;
 
         match response {
-            Response::Result(data) => {
-                match data.success {
-                    true => {
-                        //TODO handle the error properly
-                        let config: HassConfig =
-                            serde_json::from_value(data.result.unwrap()).unwrap();
-                        return Ok(config);
-                    }
-                    false => return Err(HassError::ReponseError(data)),
+            Response::Result(data) => match data.success {
+                true => {
+                    let config: HassConfig = serde_json::from_value(
+                        data.result.expect("Expecting to get the HassConfig"),
+                    )?;
+                    return Ok(config);
                 }
-            }
+                false => return Err(HassError::ReponseError(data)),
+            },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
@@ -275,17 +273,14 @@ impl HassClient {
         // have to make it Value, and based on entity_id deserialize differently
         // maybe this has to be handled by the user, add to example folder
         match response {
-            Response::Result(data) => {
-                match data.success {
-                    true => {
-                        //TODO handle the error properly
-                        let states: Vec<HassEntity> =
-                            serde_json::from_value(data.result.unwrap()).unwrap();
-                        return Ok(states);
-                    }
-                    false => return Err(HassError::ReponseError(data)),
+            Response::Result(data) => match data.success {
+                true => {
+                    let states: Vec<HassEntity> =
+                        serde_json::from_value(data.result.expect("Expecting to get the States"))?;
+                    return Ok(states);
                 }
-            }
+                false => return Err(HassError::ReponseError(data)),
+            },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
@@ -323,17 +318,15 @@ impl HassClient {
         let response = self.gateway.command(services_req).await?;
 
         match response {
-            Response::Result(data) => {
-                match data.success {
-                    true => {
-                        //TODO handle the error properly
-                        let services: HassServices =
-                            serde_json::from_value(data.result.unwrap()).unwrap();
-                        return Ok(services);
-                    }
-                    false => return Err(HassError::ReponseError(data)),
+            Response::Result(data) => match data.success {
+                true => {
+                    let services: HassServices = serde_json::from_value(
+                        data.result.expect("Expecting to get the Services"),
+                    )?;
+                    return Ok(services);
                 }
-            }
+                false => return Err(HassError::ReponseError(data)),
+            },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }

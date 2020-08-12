@@ -20,6 +20,9 @@ pub enum HassError {
     /// Returned when unable to parse the websocket server address
     WrongAddressProvided(url::ParseError),
 
+    /// Returned when serde was unable to deserialize the values
+    UnableToDeserialize(serde_json::error::Error),
+
     /// Returned when connection has unexpected failed
     ConnectionClosed,
 
@@ -50,6 +53,9 @@ impl fmt::Display for HassError {
             Self::WrongAddressProvided(e) => {
                 write!(f, "Could not parse the provided address: {}", e)
             }
+            Self::UnableToDeserialize(e) => {
+                write!(f, "Unable to deserialize the received value: {}", e)
+            }
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
             Self::ChannelSend(e) => write!(f, "Channel Send Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
@@ -75,6 +81,12 @@ impl From<SendError> for HassError {
 impl From<url::ParseError> for HassError {
     fn from(error: url::ParseError) -> Self {
         HassError::WrongAddressProvided(error)
+    }
+}
+
+impl From<serde_json::error::Error> for HassError {
+    fn from(error: serde_json::error::Error) -> Self {
+        HassError::UnableToDeserialize(error)
     }
 }
 
