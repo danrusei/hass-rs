@@ -59,13 +59,7 @@ impl WsConn {
 
         //Gateway --> Client
         if let Err(e) = receiver_loop(stream, to_client, event_listeners_clone_receiver).await {
-            match e {
-                HassError::AuthenticationFailed(_) | HassError::ConnectionClosed => {
-                    //TODO - to_client.send(Response::Close(e).await.expect("Message closed"));
-                    return Err(e);
-                }
-                _ => {}
-            }
+            return Err(e);
         };
 
         Ok(WsConn {

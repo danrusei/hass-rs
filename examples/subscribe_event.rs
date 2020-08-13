@@ -18,7 +18,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     client.auth_with_longlivedtoken(&*TOKEN).await?;
     println!("WebSocket connection and authethication works");
 
-    //TODO do something with the event, send a command back , Call a service
+    //Is the callback definition usefull as it is?..or need to return anything
+    // in order to further process the result, like call for a service
     println!("Subscribe to an Event");
 
     let pet = |item: WSEvent| {

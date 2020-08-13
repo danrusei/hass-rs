@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // tokio::time::delay_for(std::time::Duration::from_secs(2)).await;
     async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
-    //TODO  iterate and find specific fields
+    // You could iterate and find the fields in your interest
     println!("Get Hass States");
     match client.get_states().await {
         Ok(v) => println!("{:?}", v),
@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // tokio::time::delay_for(std::time::Duration::from_secs(2)).await;
     async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
-    //TODO  iterate and find specific fields
+    // You could iterate and find the fields in your interest
     println!("Get Hass Services");
     match client.get_services().await {
         Ok(v) => println!("{:?}", v),
