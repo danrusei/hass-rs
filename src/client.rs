@@ -269,9 +269,6 @@ impl HassClient {
         });
         let response = self.gateway.command(states_req).await?;
 
-        // TODO - problem Entity atributes could be different, so this may be wrong
-        // have to make it Value, and based on entity_id deserialize differently ?
-        // or has to be handled by the user?
         match response {
             Response::Result(data) => match data.success {
                 true => {
