@@ -32,5 +32,5 @@ pub type FieldName = HashMap<String, Field>;
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Field {
     pub description: String,
-    pub example: Value,
+    pub example: Option<Value>,
 }
