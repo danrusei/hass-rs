@@ -19,7 +19,7 @@
 //! # Example usage
 //! It is fetching the Home Assistant Config
 //!
-//! ```rust
+//! ```no_run
 //! use hass_rs::client;
 //! use lazy_static::lazy_static;
 //! use std::env::var;

@@ -10,14 +10,14 @@ with [async-std](https://async.rs/) support
 
 ```toml
 [dependencies]
-hass-rs = { version = "0.1", features = ["async-std-runtime"] }
+hass-rs = { version = "0.2", features = ["async-std-runtime"] }
 ```
 
 with [tokio](https://tokio.rs/) support 
 
 ```toml
 [dependencies]
-hass-rs = { version = "0.1", features = ["tokio-runtime"] }
+hass-rs = { version = "0.2", features = ["tokio-runtime"] }
 ```
 
 ## Example usage

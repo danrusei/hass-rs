@@ -1,6 +1,6 @@
 [package]
 name = "hass-rs"
-version = "0.1.0"
+version = "0.2.0"
 description = "An async websocket client for Home Assistant"
 keywords = ["hass", "homeassistant", "tokio", "async-std"]
 authors = ["Dan Rusei <dan.rusei@gmail.com>"]
