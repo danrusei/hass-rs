@@ -1,6 +1,6 @@
 use crate::types::HassEvent;
 
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serde_json::Value;
 
 ///The tag identifying which variant we are dealing with is inside of the content,

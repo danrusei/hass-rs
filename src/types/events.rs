@@ -1,5 +1,5 @@
 use crate::types::{Context, HassEntity};
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 /// This object represents the Home Assistant Event
 ///

@@ -1,4 +1,4 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serde_json::Value;
 
 /// This object represents the Home Assistant Entity
