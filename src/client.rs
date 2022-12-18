@@ -10,6 +10,7 @@ use crate::{HassError, HassResult, WsConn};
 use futures::StreamExt;
 use serde_json::Value;
 use url;
+use url::Url;
 
 /// Established connection with a Home Assistant WebSocket server.
 ///
@@ -26,6 +27,11 @@ pub struct HassClient {
 pub async fn connect(host: &str, port: u16) -> HassResult<HassClient> {
     let addr = format!("ws://{}:{}/api/websocket", host, port);
     let url = url::Url::parse(&addr)?;
+    connect_to_url(url).await
+}
+
+// establish the websocker connection to Home Assistant server, providing the complete WS URL
+pub async fn connect_to_url(url: Url) -> HassResult<HassClient> {
     let gateway = WsConn::connect(url).await?;
     Ok(HassClient { gateway })
 }
