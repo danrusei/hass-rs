@@ -244,6 +244,17 @@ async fn sender_loop(
                             return Err(HassError::from(e));
                         }
                     }
+                    Command::GetPanels(mut getpanels) => {
+                        getpanels.id = get_last_seq(&last_sequence);
+
+                        // Transform command to TungsteniteMessage
+                        let cmd = Command::GetServices(getpanels).to_tungstenite_message();
+
+                        // Send the message to gateway
+                        if let Err(e) = sink.send(cmd).await {
+                            return Err(HassError::from(e));
+                        }
+                    }
                     Command::CallService(mut callservice) => {
                         callservice.id = get_last_seq(&last_sequence);
 

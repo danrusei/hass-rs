@@ -12,6 +12,7 @@ pub(crate) enum Command {
     GetConfig(Ask),
     GetServices(Ask),
     GetStates(Ask),
+    GetPanels(Ask),
     CallService(CallService),
     Close,
 }
@@ -47,6 +48,10 @@ impl Command {
             }
             Self::GetServices(getservices) => {
                 let cmd_str = serde_json::to_string(&getservices).unwrap();
+                TungsteniteMessage::Text(cmd_str)
+            }
+            Self::GetPanels(getpanels) => {
+                let cmd_str = serde_json::to_string(&getpanels).unwrap();
                 TungsteniteMessage::Text(cmd_str)
             }
             Self::CallService(callservice) => {

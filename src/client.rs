@@ -3,7 +3,8 @@
 //! Provides an async connect and methods for issuing the supported commands.
 
 use crate::types::{
-    Ask, Auth, CallService, Command, HassConfig, HassEntity, HassServices, Response, WSEvent,
+    Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassServices, Response,
+    WSEvent,
 };
 use crate::{HassError, HassResult, WsConn};
 
@@ -326,6 +327,51 @@ impl HassClient {
                     let services: HassServices = serde_json::from_value(
                         data.result.expect("Expecting to get the Services"),
                     )?;
+                    return Ok(services);
+                }
+                false => return Err(HassError::ReponseError(data)),
+            },
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
+    }
+
+    ///This will get a dump of the current registered panels in Home Assistant.
+    ///
+    /// The server will respond with a result message containing the current registered panels.
+    ///# Examples
+    ///
+    /// Demonstrates basic usage.
+    ///
+    /// ```no_run
+    /// use hass_rs::client;
+    ///
+    /// #[async_std::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///
+    ///     let mut client = client::connect("localhost", 8123).await?;
+    ///     client.auth_with_longlivedtoken("your_token").await?;
+    ///
+    ///     println!("Get Hass Panels");
+    ///     match client.get_panels().await {
+    ///         Ok(v) => println!("{:?}", v),
+    ///         Err(err) => println!("Oh no, an error: {}", err),
+    ///     }
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn get_panels(&mut self) -> HassResult<HassPanels> {
+        //Send GetStates command and expect a number of Entities
+        let services_req = Command::GetPanels(Ask {
+            id: Some(0),
+            msg_type: "get_panels".to_owned(),
+        });
+        let response = self.gateway.command(services_req).await?;
+
+        match response {
+            Response::Result(data) => match data.success {
+                true => {
+                    let services: HassPanels =
+                        serde_json::from_value(data.result.expect("Expecting panels"))?;
                     return Ok(services);
                 }
                 false => return Err(HassError::ReponseError(data)),
