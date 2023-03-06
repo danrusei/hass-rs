@@ -73,7 +73,8 @@ $ docker run -d --name="home-assistant" -v /PATH_TO_YOUR_CONFIG:/config -v /etc/
 
 ## API reference
 
-* **client::connect(host, port)** -- establish the websocket connection to Home Assistant server.
+* **client::connect(host, port)** - establish the websocket connection to Home Assistant server.
+* **client::connect_to_url(url)** - connect using a given URL (use this if you are using a WSS connection)
 * **client.auth_with_longlivedtoken(token)** - authenticate the session using a long-lived access token.
 * **client.ping()** - can serve as a heartbeat, to ensure the connection is still alive.
 * **client.subscribe_event(event_name, callback)** - subscribe the client to the event bus. the callback is a closure, of type Fn(WSEvent), which is executed every time when a specific event is received.
