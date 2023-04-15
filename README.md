@@ -100,7 +100,7 @@ $ docker run -d --name="home-assistant" -v /PATH_TO_YOUR_CONFIG:/config -v /etc/
     - [x] Fetching states
     - [x] Fetching config
     - [x] Fetching services
-    - [ ] Fetching pannels (you need this?, raise an Issue)
+    - [x] Fetching panels
     - [ ] Fetching media player thumbnails (you need this?, raise an Issue)
 - [x] Ping - Pong
 
