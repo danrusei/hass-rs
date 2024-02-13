@@ -29,6 +29,9 @@ pub enum HassError {
     /// Tungstenite error
     TungsteniteError(tungstenite::error::Error),
 
+    ///Tokio Tungstenite error
+    TokioTungsteniteError(tokio_tungstenite::tungstenite::Error),
+
     /// Returned mpsc send channel error
     ChannelSend(SendError),
 
@@ -57,6 +60,7 @@ impl fmt::Display for HassError {
                 write!(f, "Unable to deserialize the received value: {}", e)
             }
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
+            Self::TokioTungsteniteError(e) => write!(f, "Tokio Tungstenite Error: {}", e),
             Self::ChannelSend(e) => write!(f, "Channel Send Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
             Self::ReponseError(e) => write!(
@@ -89,6 +93,15 @@ impl From<serde_json::error::Error> for HassError {
         HassError::UnableToDeserialize(error)
     }
 }
+
+// impl From<tokio_tungstenite::tungstenite::Error> for HassError {
+//     fn from(error: tokio_tungstenite::tungstenite::Error) -> Self {
+//         match error {
+//             tokio_tungstenite::tungstenite::Error::ConnectionClosed => HassError::ConnectionClosed,
+//             _ => HassError::TokioTungsteniteError(error),
+//         }
+//     }
+// }
 
 impl From<tungstenite::error::Error> for HassError {
     fn from(error: tungstenite::error::Error) -> Self {

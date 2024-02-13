@@ -13,28 +13,30 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["async-std-runtime"]
-tokio-runtime = ["tokio", "tokio-native-tls", "async-tungstenite/tokio-runtime", "async-tungstenite/tokio-native-tls"]
+default = ["tokio-runtime"]
+tokio-runtime = ["tokio", "tokio-native-tls", "tokio-tungstenite", "tokio-tungstenite/tokio-native-tls"]
 async-std-runtime = ["async-std", "async-tls", "async-tungstenite/async-std-runtime", "async-tungstenite/async-tls"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-async-tungstenite = "0.17"
+async-tungstenite = "0.25"
 futures = "0.3"
-uuid = { version ="1.0", features = ["serde", "v4"]}
-url = "2.1"
+uuid = { version ="1.7", features = ["serde", "v4"]}
+url = "2.5"
 log = "0.4"
 
-tokio = { version = "1", optional = true, features = ["time", "rt"] }
+tokio = { version = "1.36", optional = true, features = ["full"] }
 tokio-native-tls = { version = "0.3", optional = true }
-async-std = { version = "1.0", optional = true, features = ["attributes"] }
-async-tls = { version = "0.11", optional = true }
+async-std = { version = "1.12", optional = true, features = ["attributes"] }
+async-tls = { version = "0.13", optional = true }
+tokio-tungstenite = {version = "0.21.0", optional = true}
+futures-util = "0.3.30"
 
 
 [dev-dependencies]
 lazy_static = "1.4.0"
-env_logger = "0.9"
+env_logger = "0.11"
 
 [[example]]
 name = "ping"

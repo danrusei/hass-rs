@@ -9,7 +9,8 @@ lazy_static! {
 }
 
 //#[cfg_attr(feature = "tokio-runtime", tokio::main)]
-#[cfg_attr(feature = "async-std-runtime", async_std::main)]
+//#[cfg_attr(feature = "async-std-runtime", async_std::main)]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
@@ -26,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // tokio::time::delay_for(std::time::Duration::from_secs(2)).await;
-    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
     // You could iterate and find the fields in your interest
     println!("Get Hass States");
@@ -36,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // tokio::time::delay_for(std::time::Duration::from_secs(2)).await;
-    async_std::task::sleep(std::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
     // You could iterate and find the fields in your interest
     println!("Get Hass Services");

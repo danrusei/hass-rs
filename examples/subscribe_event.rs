@@ -8,7 +8,8 @@ lazy_static! {
         var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
 }
 
-#[cfg_attr(feature = "async-std-runtime", async_std::main)]
+//#[cfg_attr(feature = "async-std-runtime", async_std::main)]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
@@ -33,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(err) => println!("Oh no, an error: {}", err),
     }
 
-    async_std::task::sleep(std::time::Duration::from_secs(20)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(20)).await;
 
     println!("Unsubscribe the Event");
 
@@ -42,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(err) => println!("Oh no, an error: {}", err),
     }
 
-    async_std::task::sleep(std::time::Duration::from_secs(20)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(20)).await;
 
     Ok(())
 }
