@@ -8,7 +8,7 @@ use crate::types::{
 };
 use crate::{HassError, HassResult, WsConn};
 
-use futures::StreamExt;
+//use futures_util::StreamExt;
 use serde_json::Value;
 use url;
 use url::Url;
@@ -64,7 +64,7 @@ impl HassClient {
         let _ = self
             .gateway
             .from_gateway
-            .next()
+            .recv()
             .await
             .ok_or_else(|| HassError::ConnectionClosed)?;
 

@@ -21,6 +21,9 @@ pub(crate) async fn connect_async(url: Url) -> HassResult<WebSocket> {
     Ok(client)
 }
 
+#[cfg(feature = "async-std-runtime")]
+pub use async_std::channel::{bounded, Receiver, Sender};
+
 // ******************************
 // TOKIO
 // ******************************
@@ -34,6 +37,10 @@ pub(crate) type WebSocket =
 
 #[cfg(feature = "tokio-runtime")]
 pub use tokio::task;
+
+#[allow(unused_imports)]
+#[cfg(feature = "tokio-runtime")]
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 #[cfg(feature = "tokio-runtime")]
 pub(crate) async fn connect_async(url: Url) -> HassResult<WebSocket> {

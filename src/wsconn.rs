@@ -2,12 +2,13 @@ use crate::types::{Command, Response, Subscribe, Unsubscribe, WSEvent};
 use crate::{connect_async, task, HassError, HassResult, WebSocket};
 
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
-use futures::channel::mpsc::{channel, Receiver, Sender};
-use futures::{
+//use futures_channel::mpsc::{channel, Receiver, Sender};
+use futures_util::{
     lock::Mutex,
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 //use log::info;
 use std::collections::HashMap;
 
@@ -42,7 +43,7 @@ impl WsConn {
         let (to_gateway, from_client) = channel::<Command>(20);
 
         //Channels to receive the Response from the Websocket server and send it over to the Client
-        let (mut to_client, from_gateway) = channel::<HassResult<Response>>(20);
+        let (to_client, from_gateway) = channel::<HassResult<Response>>(20);
 
         let last_sequence = Arc::new(AtomicU64::new(1));
         let last_sequence_clone_sender = Arc::clone(&last_sequence);
@@ -53,8 +54,8 @@ impl WsConn {
 
         // Client --> Gateway
         if let Err(e) = sender_loop(last_sequence_clone_sender, sink, from_client).await {
-            to_client.send(Err(HassError::from(e))).await?
-            //return Err(e);
+            //to_client.send(Err(HassError::from(e))).await?
+            return Err(e);
         }
 
         //Gateway --> Client
@@ -80,7 +81,7 @@ impl WsConn {
 
         // Receive auth response event from the gateway
         self.from_gateway
-            .next()
+            .recv()
             .await
             .ok_or_else(|| HassError::ConnectionClosed)?
     }
@@ -155,13 +156,13 @@ fn get_last_seq(last_sequence: &Arc<AtomicU64>) -> Option<u64> {
 async fn sender_loop(
     last_sequence: Arc<AtomicU64>,
     mut sink: SplitSink<WebSocket, TungsteniteMessage>,
-    from_client: Receiver<Command>,
+    mut from_client: Receiver<Command>,
 ) -> HassResult<()> {
     task::spawn(async move {
         //Fuse the stream such that poll_next will never again be called once it has finished.
-        let mut fused = from_client.fuse();
+        //let mut fused = from_client.fuse();
         loop {
-            match fused.next().await {
+            match from_client.recv().await {
                 Some(item) => match item {
                     Command::Close => {
                         return sink
@@ -279,7 +280,7 @@ async fn sender_loop(
 async fn receiver_loop(
     //    last_sequence: Arc<AtomicU64>,
     mut stream: SplitStream<WebSocket>,
-    mut to_client: Sender<HassResult<Response>>,
+    to_client: Sender<HassResult<Response>>,
     event_listeners: Arc<Mutex<HashMap<u64, Box<dyn Fn(WSEvent) + Send>>>>,
 ) -> HassResult<()> {
     task::spawn(async move {

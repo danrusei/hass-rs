@@ -14,6 +14,7 @@ pub(crate) enum Command {
     GetStates(Ask),
     GetPanels(Ask),
     CallService(CallService),
+    #[allow(dead_code)]
     Close,
 }
 

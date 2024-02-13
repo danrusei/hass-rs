@@ -2,9 +2,8 @@
 
 use crate::types::WSResult;
 
-use async_tungstenite::tungstenite;
-use futures::channel::mpsc::SendError;
 use std::fmt;
+use tokio_tungstenite::tungstenite;
 
 pub type HassResult<T> = std::result::Result<T, HassError>;
 
@@ -32,9 +31,6 @@ pub enum HassError {
     ///Tokio Tungstenite error
     TokioTungsteniteError(tokio_tungstenite::tungstenite::Error),
 
-    /// Returned mpsc send channel error
-    ChannelSend(SendError),
-
     /// Returned when an unknown message format is received
     UnknownPayloadReceived,
 
@@ -61,7 +57,6 @@ impl fmt::Display for HassError {
             }
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
             Self::TokioTungsteniteError(e) => write!(f, "Tokio Tungstenite Error: {}", e),
-            Self::ChannelSend(e) => write!(f, "Channel Send Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
             Self::ReponseError(e) => write!(
                 f,
@@ -74,13 +69,13 @@ impl fmt::Display for HassError {
     }
 }
 
-impl From<SendError> for HassError {
-    fn from(error: SendError) -> Self {
-        match error {
-            _ => HassError::ChannelSend(error),
-        }
-    }
-}
+// impl From<SendError> for HassError {
+//     fn from(error: SendError) -> Self {
+//         match error {
+//             _ => HassError::ChannelSend(error),
+//         }
+//     }
+// }
 
 impl From<url::ParseError> for HassError {
     fn from(error: url::ParseError) -> Self {
