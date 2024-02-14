@@ -56,10 +56,10 @@ pub mod types;
 pub use types::*;
 
 pub mod client;
-pub use client::{connect, HassClient};
+pub use client::HassClient;
 
 mod runtime;
 use runtime::{connect_async, task, WebSocket};
 
 mod wsconn;
-use wsconn::WsConn;
+//use wsconn::WsConn;

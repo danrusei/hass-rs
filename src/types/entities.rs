@@ -4,7 +4,7 @@ use serde_json::Value;
 /// This object represents the Home Assistant Entity
 ///
 /// [Entity](https://developers.home-assistant.io/docs/core/entity/)
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct HassEntity {
     pub entity_id: String,
     pub state: String,
@@ -15,7 +15,7 @@ pub struct HassEntity {
 }
 
 /// General construct used by HassEntity and HassEvent
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Context {
     pub id: String,
     pub parent_id: Option<String>,

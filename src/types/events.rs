@@ -7,7 +7,7 @@ use serde::Deserialize;
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)
 ///
 ///This is created against StateChangedEvent, may not work with other event types
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct HassEvent {
     pub event_type: String,
     pub data: EventData,
@@ -17,7 +17,7 @@ pub struct HassEvent {
 }
 
 /// This is part of HassEvent
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct EventData {
     pub entity_id: String,
     pub new_state: Option<HassEntity>,
