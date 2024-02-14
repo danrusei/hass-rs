@@ -73,28 +73,33 @@ async fn main() {
         .get_config()
         .await
         .expect("Unable to retrieve the Config");
-    println!("config: {:?}\n", cmd2);
+    println!("config: {}\n", cmd2);
 
     println!("Getting the States:\n");
     let cmd3 = client
         .get_states()
         .await
         .expect("Unable to retrieve the States");
-    println!("config: {:?}\n", cmd3);
+    for entity in cmd3 {
+        println!("config: {}\n", entity);
+    }
 
     println!("Getting the Panels:\n");
     let cmd5 = client
         .get_panels()
         .await
         .expect("Unable to retrieve the Panels");
-    println!("config: {:?}\n", cmd5);
+    for (key, pannel) in cmd5 {
+        println!("pannel_key: {}\n", key);
+        println!("pannel: {}\n", pannel);
+    }
 
     println!("Getting the Services:\n");
     let cmd4 = client
         .get_services()
         .await
         .expect("Unable to retrieve the Services");
-    println!("config: {:?}\n", cmd4);
+    println!("config: {}\n", cmd4);
 
     // Await both tasks (optional, depending on your use case)
     let _ = tokio::try_join!(read_handle, write_handle);
