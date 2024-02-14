@@ -5,6 +5,7 @@ use futures_util::{
 };
 use hass_rs::client::HassClient;
 use lazy_static::lazy_static;
+use serde_json::json;
 use std::env::var;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
@@ -68,9 +69,37 @@ async fn main() {
 
     println!("WebSocket connection and authethication works\n");
 
-    println!("Getting the Config\n");
-    let cmd2 = client.get_config().await.expect("Not getting the config");
-    println!("config: {:?}", cmd2);
+    // println!("Getting the Services:\n");
+    // let cmd1 = client
+    //     .get_services()
+    //     .await
+    //     .expect("Unable to retrieve the Services");
+    // println!("config: {:?}\n", cmd1.0.get("homeassistant"));
+
+    // Before
+    // "homeassistant": {"update_entity": HassService { name: Some("Update entity"), description: Some("Forces one or more entities to update its data."), fields: {} }
+
+    let value = json!({
+        "entity_id": "sun.sun"
+    });
+
+    println!("Calling a service:\n");
+    let cmd2 = client
+        .call_service(
+            "homeassistant".to_owned(),
+            "update_entity".to_owned(),
+            Some(value),
+        )
+        .await
+        .expect("Unable to call the targeted service");
+    println!("config: {:?}\n", cmd2);
+
+    // println!("Getting the Services:\n");
+    // let cmd3 = client
+    //     .get_services()
+    //     .await
+    //     .expect("Unable to retrieve the Services");
+    // println!("config: {:?}\n", cmd3.0.get("homeassistant"));
 
     // Await both tasks (optional, depending on your use case)
     let _ = tokio::try_join!(read_handle, write_handle);
