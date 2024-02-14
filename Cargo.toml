@@ -41,14 +41,10 @@ env_logger = "0.11"
 tokio = { version = "1.36", features = ["full"] }
 
 [[example]]
-name = "new_ping"
-path = "examples/new_ping.rs"
+name = "get_cmds"
+path = "examples/get_cmds.rs"
 
 [[example]]
-name = "subscribe_event"
-path = "examples/subscribe_event.rs"
+name = "call_service"
+path = "examples/call_service.rs"
 
-[[example]]
-name = "fetch_items"
-path = "examples/fetch_items.rs"
-# required-features = ["tokio/macros"]

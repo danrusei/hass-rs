@@ -21,8 +21,10 @@ pub type ServiceName = HashMap<String, HassService>;
 /// [Fetch Services](https://developers.home-assistant.io/docs/api/websocket/#fetching-services)
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassService {
-    pub description: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
     pub fields: FieldName,
+    //pub response: Option<bool>,
 }
 
 /// This is part of HassService
@@ -31,6 +33,7 @@ pub type FieldName = HashMap<String, Field>;
 ///This is part of HassService
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Field {
-    pub description: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
     pub example: Option<Value>,
 }
