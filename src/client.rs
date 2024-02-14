@@ -7,10 +7,12 @@ use crate::types::{
     Subscribe, Unsubscribe, WSEvent,
 };
 use crate::{HassError, HassResult};
+use async_tungstenite::tungstenite::Error;
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 
 //use futures_util::StreamExt;
 use futures_util::lock::Mutex;
+use log::info;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{
@@ -29,6 +31,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 /// It Supports both "async-std" and "tokio" runtimes.
 ///
 /// Requests are issued using the various methods of `Client`.  
+#[derive(Debug)]
 pub struct HassClient {
     //pub(crate) gateway: WsConn,
     last_sequence: Arc<AtomicU64>,
@@ -38,7 +41,7 @@ pub struct HassClient {
     pub(crate) to_gateway: Sender<TungsteniteMessage>,
 
     //Gateway --> Client (receive "Response" msg from the Gateway)
-    pub(crate) from_gateway: Receiver<TungsteniteMessage>,
+    pub(crate) from_gateway: Receiver<Result<TungsteniteMessage, Error>>,
 }
 
 /// establish the websocket connection to Home Assistant server
@@ -62,13 +65,15 @@ impl HassClient {
     /// If the client supplies valid authentication, the authentication phase will complete by the server sending the auth_ok message.
     /// If the data is incorrect, the server will reply with auth_invalid message and disconnect the session.
 
-    pub fn new(tx: Sender<TungsteniteMessage>, rx: Receiver<TungsteniteMessage>) -> Self {
+    pub fn new(
+        tx: Sender<TungsteniteMessage>,
+        rx: Receiver<Result<TungsteniteMessage, Error>>,
+    ) -> Self {
         let last_sequence = Arc::new(AtomicU64::new(1));
-        let last_sequence_clone_sender = Arc::clone(&last_sequence);
         //let last_sequence_clone_receiver = Arc::clone(&last_sequence);
 
         let event_listeners = Arc::new(Mutex::new(HashMap::new()));
-        let event_listeners_clone_receiver = Arc::clone(&event_listeners);
+        //let event_listeners_clone_receiver = Arc::clone(&event_listeners);
 
         HassClient {
             last_sequence,
@@ -91,6 +96,9 @@ impl HassClient {
             msg_type: "auth".to_owned(),
             access_token: token.to_owned(),
         });
+
+        info!("{:?}", auth_req);
+
         let response = self.command(auth_req).await?;
 
         //Check if the authetication was succefully, should receive {"type": "auth_ok"}
@@ -111,11 +119,14 @@ impl HassClient {
     /// This serves as a heartbeat to ensure the connection is still alive.
 
     pub async fn ping(&mut self) -> HassResult<String> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
         //Send Ping command and expect Pong
         let ping_req = Command::Ping(Ask {
-            id: Some(0),
+            id: Some(id),
             msg_type: "ping".to_owned(),
         });
+
         let response = self.command(ping_req).await?;
 
         //Check the response, if the Pong was received
@@ -155,9 +166,11 @@ impl HassClient {
     /// The server will respond with a result message containing the config.
 
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
         //Send GetConfig command and expect Pong
         let config_req = Command::GetConfig(Ask {
-            id: Some(0),
+            id: Some(id),
             msg_type: "get_config".to_owned(),
         });
         let response = self.command(config_req).await?;
@@ -181,9 +194,11 @@ impl HassClient {
     /// The server will respond with a result message containing the states.
 
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
         //Send GetStates command and expect a number of Entities
         let states_req = Command::GetStates(Ask {
-            id: Some(0),
+            id: Some(id),
             msg_type: "get_states".to_owned(),
         });
         let response = self.command(states_req).await?;
@@ -206,9 +221,10 @@ impl HassClient {
     /// The server will respond with a result message containing the services.
 
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
         //Send GetStates command and expect a number of Entities
         let services_req = Command::GetServices(Ask {
-            id: Some(0),
+            id: Some(id),
             msg_type: "get_services".to_owned(),
         });
         let response = self.command(services_req).await?;
@@ -232,9 +248,11 @@ impl HassClient {
     /// The server will respond with a result message containing the current registered panels.
 
     pub async fn get_panels(&mut self) -> HassResult<HassPanels> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
         //Send GetStates command and expect a number of Entities
         let services_req = Command::GetPanels(Ask {
-            id: Some(0),
+            id: Some(id),
             msg_type: "get_panels".to_owned(),
         });
         let response = self.command(services_req).await?;
@@ -264,9 +282,11 @@ impl HassClient {
         service: String,
         service_data: Option<Value>,
     ) -> HassResult<String> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
         //Send GetStates command and expect a number of Entities
         let services_req = Command::CallService(CallService {
-            id: Some(0),
+            id: Some(id),
             msg_type: "call_service".to_owned(),
             domain,
             service,
@@ -300,7 +320,7 @@ impl HassClient {
         //     .await
         //     .ok_or_else(|| HassError::ConnectionClosed)?
         match self.from_gateway.recv().await {
-            Some(item) => match item {
+            Some(Ok(item)) => match item {
                 TungsteniteMessage::Text(data) => {
                     // info!("{}", data);
 
@@ -322,27 +342,21 @@ impl HassClient {
                                     }
                                     None => todo!("send unsubscribe request"),
                                 }
+                                // FIXME  this should not return Error, as it found event and is executing customer closure
+                                return Err(HassError::Generic("TO DO".to_string()));
                             }
                             _ => return Ok(value), //todo!("to_client.send(Ok(value)).await.unwrap(),"),
                         },
                         Err(error) => return Err(error), //todo!("to_client.send(Err(error)).await.unwrap(),"),
                     };
                 }
-                _ => {
-                    todo!()
-                }
+                _ => todo!(),
             },
+            Some(Err(error)) => {
+                let err = Err(HassError::from(&error));
+                err
+            }
 
-            // Some(Err(error)) => todo!(),
-            //     match to_client.send(Err(HassError::from(&error))).await {
-            //     //send the error to client (unexpected message format, like a new error)
-            //     Ok(_r) => {
-            //         todo!()
-            //     }
-            //     Err(_e) => {
-            //         todo!()
-            //     }
-            // },
             None => {
                 todo!()
             }
@@ -358,9 +372,11 @@ impl HassClient {
     where
         F: Fn(WSEvent) + Send + 'static,
     {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
         //create the Event Subscribe Command
         let cmd = Command::SubscribeEvent(Subscribe {
-            id: None,
+            id: Some(id),
             msg_type: "subscribe_events".to_owned(),
             event_type: event_name.to_owned(),
         });
@@ -382,9 +398,11 @@ impl HassClient {
 
     //used to unsubscribe the event and remove the registered callback
     pub(crate) async fn unsubscribe_message(&mut self, subscription_id: u64) -> HassResult<String> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
         //Unsubscribe the Event
         let unsubscribe_req = Command::Unsubscribe(Unsubscribe {
-            id: Some(0),
+            id: Some(id),
             msg_type: "unsubscribe_events".to_owned(),
             subscription: subscription_id,
         });
@@ -404,5 +422,14 @@ impl HassClient {
             Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
+    }
+}
+
+// message sequence required by the Websocket server
+fn get_last_seq(last_sequence: &Arc<AtomicU64>) -> Option<u64> {
+    // Increase the last sequence and use the previous value in the request
+    match last_sequence.fetch_add(1, Ordering::Relaxed) {
+        0 => None,
+        v => Some(v),
     }
 }
