@@ -90,6 +90,8 @@ async fn main() {
         Err(err) => println!("Oh no, an error: {}", err),
     };
 
+    //tokio::spawn(client.read_events());
+
     thread::sleep(time::Duration::from_secs(10));
 
     println!("Unsubscribe the Event");

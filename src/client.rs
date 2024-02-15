@@ -44,19 +44,6 @@ pub struct HassClient {
     pub(crate) from_gateway: Receiver<Result<TungsteniteMessage, Error>>,
 }
 
-/// establish the websocket connection to Home Assistant server
-// pub async fn connect(host: &str, port: u16) -> HassResult<HassClient> {
-//     let addr = format!("ws://{}:{}/api/websocket", host, port);
-//     let url = url::Url::parse(&addr)?;
-//     connect_to_url(url).await
-// }
-
-// establish the websocker connection to Home Assistant server, providing the complete WS URL
-// pub async fn connect_to_url(url: Url) -> HassResult<HassClient> {
-//     let gateway = WsConn::connect(url).await?;
-//     Ok(HassClient { gateway })
-// }
-
 impl HassClient {
     /// authenticate the session using a long-lived access token
     ///
@@ -135,34 +122,6 @@ impl HassClient {
             Response::Result(err) => return Err(HassError::ReponseError(err)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
-    }
-
-    ///The command subscribe_event will subscribe your client to the event bus.
-    ///
-    /// You can either listen to all events or to a specific event type.
-    /// If you want to listen to multiple event types, you will have to send multiple subscribe_events commands.
-    /// The server will respond with a result message to indicate that the subscription is active.
-    /// For each event that matches, the server will send a message of type event.
-    /// The id in the message will point at the original id of the listen_event command.
-
-    pub async fn subscribe_event<F>(
-        &mut self,
-        event_name: &str,
-        callback: F,
-    ) -> HassResult<WSResult>
-    where
-        F: Fn(WSEvent) + Send + 'static,
-    {
-        self.subscribe_message(event_name, callback).await
-    }
-
-    ///The command unsubscribe_event will unsubscribe your client from the event bus.
-    ///
-    /// You can unsubscribe from previously created subscription events.
-    /// Pass the id of the original subscription command as value to the subscription field.
-
-    pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
-        self.unsubscribe_message(subscription_id).await
     }
 
     ///This will get a dump of the current config in Home Assistant.
@@ -308,6 +267,96 @@ impl HassClient {
         }
     }
 
+    ///The command subscribe_event will subscribe your client to the event bus.
+    ///
+    /// You can either listen to all events or to a specific event type.
+    /// If you want to listen to multiple event types, you will have to send multiple subscribe_events commands.
+    /// The server will respond with a result message to indicate that the subscription is active.
+    /// For each event that matches, the server will send a message of type event.
+    /// The id in the message will point at the original id of the listen_event command.
+
+    pub async fn subscribe_event<F>(
+        &mut self,
+        event_name: &str,
+        callback: F,
+    ) -> HassResult<WSResult>
+    where
+        F: Fn(WSEvent) + Send + 'static,
+    {
+        self.subscribe_message(event_name, callback).await
+    }
+
+    //used to subscribe to the event and if the subscribtion succeded the callback is registered
+    pub(crate) async fn subscribe_message<F>(
+        &mut self,
+        event_name: &str,
+        callback: F,
+    ) -> HassResult<WSResult>
+    where
+        F: Fn(WSEvent) + Send + 'static,
+    {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
+        //create the Event Subscribe Command
+        let cmd = Command::SubscribeEvent(Subscribe {
+            id: Some(id),
+            msg_type: "subscribe_events".to_owned(),
+            event_type: event_name.to_owned(),
+        });
+
+        //send command to subscribe to specific event
+        let response = self.command(cmd).await.unwrap();
+
+        //Add the callback in the event_listeners hashmap if the Subscription Response is successfull
+        match response {
+            Response::Result(v) if v.success == true => {
+                // println!("{}, {}, {:?}", v.id, v.result.unwrap_or_default(), v.error,);
+                let mut table = self.event_listeners.lock().await;
+                table.insert(v.id, Box::new(callback));
+                return Ok(v);
+            }
+            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
+    }
+
+    ///The command unsubscribe_event will unsubscribe your client from the event bus.
+    ///
+    /// You can unsubscribe from previously created subscription events.
+    /// Pass the id of the original subscription command as value to the subscription field.
+
+    pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
+        self.unsubscribe_message(subscription_id).await
+    }
+
+    //used to unsubscribe the event and remove the registered callback
+    pub(crate) async fn unsubscribe_message(&mut self, subscription_id: u64) -> HassResult<String> {
+        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+
+        //Unsubscribe the Event
+        let unsubscribe_req = Command::Unsubscribe(Unsubscribe {
+            id: Some(id),
+            msg_type: "unsubscribe_events".to_owned(),
+            subscription: subscription_id,
+        });
+
+        //send command to unsubscribe from specific event
+        let response = self.command(unsubscribe_req).await.unwrap();
+
+        //Remove the event_type and the callback from the event_listeners hashmap
+        match response {
+            Response::Result(v) if v.success == true => {
+                let mut table = self.event_listeners.lock().await;
+                if let Some(_) = table.remove(&subscription_id) {
+                    return Ok("Ok".to_owned());
+                }
+                return Err(HassError::Generic("Wrong subscription ID".to_owned()));
+            }
+            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
+            _ => return Err(HassError::UnknownPayloadReceived),
+        }
+    }
+
     //used to send commands and receive responses from the gasteway
     pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
         //transform to TungsteniteMessage to be sent to WebSocket
@@ -366,68 +415,6 @@ impl HassClient {
             None => {
                 todo!()
             }
-        }
-    }
-
-    //used to subscribe to the event and if the subscribtion succeded the callback is registered
-    pub(crate) async fn subscribe_message<F>(
-        &mut self,
-        event_name: &str,
-        callback: F,
-    ) -> HassResult<WSResult>
-    where
-        F: Fn(WSEvent) + Send + 'static,
-    {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
-
-        //create the Event Subscribe Command
-        let cmd = Command::SubscribeEvent(Subscribe {
-            id: Some(id),
-            msg_type: "subscribe_events".to_owned(),
-            event_type: event_name.to_owned(),
-        });
-
-        //send command to subscribe to specific event
-        let response = self.command(cmd).await.unwrap();
-
-        //Add the callback in the event_listeners hashmap if the Subscription Response is successfull
-        match response {
-            Response::Result(v) if v.success == true => {
-                // println!("{}, {}, {:?}", v.id, v.result.unwrap_or_default(), v.error,);
-                let mut table = self.event_listeners.lock().await;
-                table.insert(v.id, Box::new(callback));
-                return Ok(v);
-            }
-            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
-            _ => return Err(HassError::UnknownPayloadReceived),
-        }
-    }
-
-    //used to unsubscribe the event and remove the registered callback
-    pub(crate) async fn unsubscribe_message(&mut self, subscription_id: u64) -> HassResult<String> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
-
-        //Unsubscribe the Event
-        let unsubscribe_req = Command::Unsubscribe(Unsubscribe {
-            id: Some(id),
-            msg_type: "unsubscribe_events".to_owned(),
-            subscription: subscription_id,
-        });
-
-        //send command to unsubscribe from specific event
-        let response = self.command(unsubscribe_req).await.unwrap();
-
-        //Remove the event_type and the callback from the event_listeners hashmap
-        match response {
-            Response::Result(v) if v.success == true => {
-                let mut table = self.event_listeners.lock().await;
-                if let Some(_) = table.remove(&subscription_id) {
-                    return Ok("Ok".to_owned());
-                }
-                return Err(HassError::Generic("Wrong subscription ID".to_owned()));
-            }
-            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
-            _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
 }
