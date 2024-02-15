@@ -357,7 +357,7 @@ impl HassClient {
         }
     }
 
-    //used to send commands and receive responses from the gasteway
+    //used to send commands and receive responses from the gateway
     pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
         //transform to TungsteniteMessage to be sent to WebSocket
         let cmd_tungstenite = cmd.to_tungstenite_message();
@@ -368,53 +368,73 @@ impl HassClient {
             .await
             .map_err(|_| HassError::ConnectionClosed)?;
 
-        // Receive auth response event from the gateway
-        // self.from_gateway
-        //     .recv()
-        //     .await
-        //     .ok_or_else(|| HassError::ConnectionClosed)?
         match self.from_gateway.recv().await {
             Some(Ok(item)) => match item {
                 TungsteniteMessage::Text(data) => {
                     //Serde: The tag identifying which variant we are dealing with is now inside of the content,
                     // next to any other fields of the variant
 
-                    //dbg!("{:?}", &data);
-
                     let payload: Result<Response, HassError> =
                         serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
 
-                    //Match on payload, and act accordingly, like execute the client defined closure if any Event received
-                    match payload {
-                        Ok(value) => match value {
-                            Response::Event(event) => {
-                                let mut table = self.event_listeners.lock().await;
-
-                                match table.get_mut(&event.id) {
-                                    Some(client_func) => {
-                                        //execute client closure
-                                        client_func(event);
-                                    }
-                                    None => todo!("send unsubscribe request"),
-                                }
-                                // FIXME  this should not return Error, as it found event and is executing customer closure
-                                return Err(HassError::Generic("TO DO".to_string()));
-                            }
-                            _ => return Ok(value), //todo!("to_client.send(Ok(value)).await.unwrap(),"),
-                        },
-                        Err(error) => return Err(error), //todo!("to_client.send(Err(error)).await.unwrap(),"),
-                    };
+                    payload
                 }
-                _ => todo!(),
+                _ => Err(HassError::UnknownPayloadReceived),
             },
             Some(Err(error)) => {
                 let err = Err(HassError::from(&error));
                 err
             }
 
-            None => {
-                todo!()
-            }
+            None => Err(HassError::UnknownPayloadReceived),
+        }
+    }
+
+    // FIXME  I might have problems if the user is listening for Events but the same time sending commands.
+    // I might have to consolidate within a single function that receive messages from websocket and respond accordingly
+    pub async fn read_events(&mut self) -> HassResult<WSEvent> {
+        loop {
+            match self.from_gateway.recv().await {
+                Some(Ok(item)) => match item {
+                    TungsteniteMessage::Text(data) => {
+                        //Serde: The tag identifying which variant we are dealing with is now inside of the content,
+                        // next to any other fields of the variant
+
+                        //dbg!("{:?}", &data);
+
+                        let payload: Result<Response, HassError> = serde_json::from_str(&data)
+                            .map_err(|_| HassError::UnknownPayloadReceived);
+
+                        //Match on payload, and act accordingly, like execute the client defined closure if any Event received
+                        match payload {
+                            Ok(value) => match value {
+                                Response::Event(event) => {
+                                    let mut table = self.event_listeners.lock().await;
+
+                                    match table.get_mut(&event.id) {
+                                        Some(client_func) => {
+                                            //execute client closure
+                                            client_func(event.clone());
+                                        }
+                                        None => todo!("send unsubscribe request"),
+                                    }
+
+                                    return Ok(event);
+                                }
+                                _ => return Err(HassError::UnknownPayloadReceived),
+                            },
+                            Err(error) => return Err(error),
+                        };
+                    }
+                    _ => return Err(HassError::UnknownPayloadReceived),
+                },
+                Some(Err(error)) => {
+                    let err = Err(HassError::from(&error));
+                    return err;
+                }
+
+                None => return Err(HassError::UnknownPayloadReceived),
+            };
         }
     }
 }

@@ -64,7 +64,7 @@ pub(crate) struct WSPong {
 ///
 /// received when the client is subscribed to
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct WSEvent {
     pub id: u64,
     // #[serde(rename = "type")]

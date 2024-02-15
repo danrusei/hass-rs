@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use std::env::var;
 use std::{thread, time};
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
+use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender, oneshot};
 use tokio_tungstenite::{connect_async, WebSocketStream};
 
 lazy_static! {
@@ -24,6 +24,12 @@ async fn ws_incoming_messages(
     loop {
         while let Some(message) = stream.next().await {
             //dbg!(&message);
+
+            //FIXME - maybe here we should call the function to check message,
+            //if it's WSEvent to do something otherwise to go to normal route !!!!!!
+            // if it is WSevent send directly to user, do not involve the library,
+            // the library only should check if the subscription is correct
+
             let _ = to_user.send(message).await;
         }
     }
@@ -90,19 +96,20 @@ async fn main() {
         Err(err) => println!("Oh no, an error: {}", err),
     };
 
-    //tokio::spawn(client.read_events());
+    let read_events = tokio::spawn(async move {
+        let event = client.read_events().await;
+        println!("Event received {:?}", event);
 
-    thread::sleep(time::Duration::from_secs(10));
+        println!("Unsubscribe the Event");
 
-    println!("Unsubscribe the Event");
+        match client.unsubscribe_event(id).await {
+            Ok(v) => println!("Succefully unsubscribed: {}", v),
+            Err(err) => println!("Oh no, an error: {}", err),
+        }
+    });
 
-    match client.unsubscribe_event(id).await {
-        Ok(v) => println!("Succefully unsubscribed: {}", v),
-        Err(err) => println!("Oh no, an error: {}", err),
-    }
-
-    thread::sleep(time::Duration::from_secs(10));
+    thread::sleep(time::Duration::from_secs(20));
 
     // Await both tasks (optional, depending on your use case)
-    let _ = tokio::try_join!(read_handle, write_handle);
+    let _ = tokio::try_join!(read_handle, write_handle, read_events);
 }
