@@ -81,7 +81,7 @@ async fn main() {
         .await
         .expect("Unable to retrieve the States");
     for entity in cmd3 {
-        println!("config: {}\n", entity);
+        println!("entities: {}\n", entity);
     }
 
     println!("Getting the Panels:\n");
@@ -99,7 +99,7 @@ async fn main() {
         .get_services()
         .await
         .expect("Unable to retrieve the Services");
-    println!("config: {}\n", cmd4);
+    println!("services: {}\n", cmd4);
 
     // Await both tasks (optional, depending on your use case)
     let _ = tokio::try_join!(read_handle, write_handle);

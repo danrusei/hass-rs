@@ -4,9 +4,10 @@ use futures_util::{
     SinkExt, StreamExt,
 };
 use hass_rs::client::HassClient;
+use hass_rs::WSEvent;
 use lazy_static::lazy_static;
-use serde_json::json;
 use std::env::var;
+use std::{thread, time};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
 use tokio_tungstenite::{connect_async, WebSocketStream};
@@ -22,6 +23,7 @@ async fn ws_incoming_messages(
 ) {
     loop {
         while let Some(message) = stream.next().await {
+            //dbg!(&message);
             let _ = to_user.send(message).await;
         }
     }
@@ -69,80 +71,36 @@ async fn main() {
 
     println!("WebSocket connection and authethication works\n");
 
-    let domain = "homeassistant";
-    let service = "turn_on";
-    let entity_id = "media_player.bravia_4k_gb";
+    println!("Subscribe to an Event");
 
-    println!("Getting the Services:\n");
-    let cmd1 = client
-        .get_services()
-        .await
-        .expect("Unable to retrieve the Services");
-
-    // Validate if the selected **domain** and **service** exist
-    if let Some(service_names) = cmd1.list_services(domain) {
-        for (name, hass_service) in service_names {
-            if name == service.to_string() {
-                println!("Name: {}", name);
-                println!("hass_service: {}", hass_service);
-            }
-        }
-    } else {
+    let do_something = |item: WSEvent| {
         println!(
-            "Domain {}, or the service {} for provided domain, not found",
-            domain, service
-        );
+        "Closure is executed when the Event with the id: {} has been received, it was fired at {}", item.id,
+        item.event.time_fired );
+    };
+
+    let mut id: u64 = 0;
+
+    match client.subscribe_event("state_changed", do_something).await {
+        Ok(v) => {
+            println!("Event subscribed: {:?}", v);
+            id = v.id;
+        }
+
+        Err(err) => println!("Oh no, an error: {}", err),
+    };
+
+    thread::sleep(time::Duration::from_secs(10));
+
+    println!("Unsubscribe the Event");
+
+    match client.unsubscribe_event(id).await {
+        Ok(v) => println!("Succefully unsubscribed: {}", v),
+        Err(err) => println!("Oh no, an error: {}", err),
     }
 
-    println!("Getting the States (Entities):\n");
-    let cmd2 = client
-        .get_states()
-        .await
-        .expect("Unable to retrieve the States");
+    thread::sleep(time::Duration::from_secs(10));
 
-    //Validate if the selected **entity_id** exist
-    let entity_found = cmd2.iter().find(|e| e.entity_id == entity_id);
-    if let Some(entity) = entity_found {
-        println!("{}", entity);
-    }
-
-    let value = json!({
-        "entity_id": entity_id,
-    });
-
-    println!("Calling a service:, in this specific case to turn ON the TV\n");
-    let cmd3 = client
-        .call_service(domain.to_owned(), service.to_owned(), Some(value))
-        .await
-        .expect("Unable to call the targeted service");
-    println!("service: {:?}\n", cmd3);
-
-    //check the new Entity state
-    println!("Getting again the States (Entities):\n");
-    let cmd4 = client
-        .get_states()
-        .await
-        .expect("Unable to retrieve the States");
-
-    let entity_found = cmd4.iter().find(|e| e.entity_id == entity_id);
-    if let Some(entity) = entity_found {
-        println!("{}", entity);
-    }
-
+    // Await both tasks (optional, depending on your use case)
     let _ = tokio::try_join!(read_handle, write_handle);
-
-    //
-    // I'm getting:
-    //
-    // HassEntity {
-    //     entity_id: media_player.bravia_4k_gb,
-    //     state: off,
-    //     last_changed: 2024-02-15T11:13:02.291378+00:00,
-    //     last_updated: 2024-02-15T11:13:27.686327+00:00,
-
-    // HassEntity {
-    //     entity_id: media_player.bravia_4k_gb,
-    //     state: paused,
-    //     last_changed: 2024-02-15T11:14:05.370810+00:00,
-    //     last_updated: 2024-02-15T11:14:05.370810+00:00
 }
