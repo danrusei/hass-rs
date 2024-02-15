@@ -78,16 +78,16 @@ pub struct WSEvent {
 /// if "suceess" is false, then the "error" should be further explored
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSResult {
-    pub(crate) id: u64,
+    pub id: u64,
     // #[serde(rename = "type")]
     // pub(crate) msg_type: String,
-    pub(crate) success: bool,
-    pub(crate) result: Option<Value>,
-    pub(crate) error: Option<ErrorCode>,
+    pub success: bool,
+    pub result: Option<Value>,
+    pub error: Option<ErrorCode>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-pub(crate) struct ErrorCode {
-    pub(crate) code: String,
-    pub(crate) message: String,
+pub struct ErrorCode {
+    pub code: String,
+    pub message: String,
 }

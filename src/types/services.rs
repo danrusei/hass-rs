@@ -67,3 +67,34 @@ impl fmt::Display for HassServices {
         Ok(())
     }
 }
+
+impl fmt::Display for HassService {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "    name: {:?},\n", self.name)?;
+        write!(f, "    description: {:?},\n", self.description)?;
+        write!(f, "    fields: {{\n")?;
+        for (field_name, field) in &self.fields {
+            write!(f, "      {}: {{\n", field_name)?;
+            write!(f, "          name: {:?},\n", field.name)?;
+            write!(f, "          description: {:?},\n", field.description)?;
+            write!(f, "          example: {:?},\n", field.example)?;
+            write!(f, "          }},\n")?;
+        }
+        Ok(())
+    }
+}
+
+impl HassServices {
+    pub fn list_domains(&self) -> Vec<String> {
+        self.0.keys().cloned().collect()
+    }
+
+    pub fn list_services(&self, user_provided_domain: &str) -> Option<Vec<(String, &HassService)>> {
+        self.0.get(user_provided_domain).map(|service_name| {
+            service_name
+                .iter()
+                .map(|(name, hass_service)| (name.clone(), hass_service))
+                .collect()
+        })
+    }
+}

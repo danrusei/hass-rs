@@ -48,3 +48,7 @@ path = "examples/get_cmds.rs"
 name = "call_service"
 path = "examples/call_service.rs"
 
+[[example]]
+name = "subscribe_event"
+path = "examples/subscribe_event.rs"
+

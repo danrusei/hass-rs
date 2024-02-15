@@ -6,7 +6,7 @@ use crate::types::{
     Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassServices, Response,
     Subscribe, Unsubscribe, WSEvent,
 };
-use crate::{HassError, HassResult};
+use crate::{HassError, HassResult, WSResult};
 use async_tungstenite::tungstenite::Error;
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 
@@ -145,7 +145,11 @@ impl HassClient {
     /// For each event that matches, the server will send a message of type event.
     /// The id in the message will point at the original id of the listen_event command.
 
-    pub async fn subscribe_event<F>(&mut self, event_name: &str, callback: F) -> HassResult<String>
+    pub async fn subscribe_event<F>(
+        &mut self,
+        event_name: &str,
+        callback: F,
+    ) -> HassResult<WSResult>
     where
         F: Fn(WSEvent) + Send + 'static,
     {
@@ -274,7 +278,8 @@ impl HassClient {
     ///The client can listen to state_changed events if it is interested in changed entities as a result of a service call.
     ///
     ///The server will indicate with a message indicating that the service is done executing.
-    ///
+    /// https://developers.home-assistant.io/docs/api/websocket#calling-a-service
+    /// additional info : https://developers.home-assistant.io/docs/api/rest ==> Post /api/services/<domain>/<service>
 
     pub async fn call_service(
         &mut self,
@@ -322,10 +327,11 @@ impl HassClient {
         match self.from_gateway.recv().await {
             Some(Ok(item)) => match item {
                 TungsteniteMessage::Text(data) => {
-                    // info!("{}", data);
-
                     //Serde: The tag identifying which variant we are dealing with is now inside of the content,
                     // next to any other fields of the variant
+
+                    //dbg!("{:?}", &data);
+
                     let payload: Result<Response, HassError> =
                         serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
 
@@ -368,7 +374,7 @@ impl HassClient {
         &mut self,
         event_name: &str,
         callback: F,
-    ) -> HassResult<String>
+    ) -> HassResult<WSResult>
     where
         F: Fn(WSEvent) + Send + 'static,
     {
@@ -387,9 +393,10 @@ impl HassClient {
         //Add the callback in the event_listeners hashmap if the Subscription Response is successfull
         match response {
             Response::Result(v) if v.success == true => {
+                // println!("{}, {}, {:?}", v.id, v.result.unwrap_or_default(), v.error,);
                 let mut table = self.event_listeners.lock().await;
                 table.insert(v.id, Box::new(callback));
-                return Ok("Ok".to_owned());
+                return Ok(v);
             }
             Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
             _ => return Err(HassError::UnknownPayloadReceived),
@@ -410,7 +417,7 @@ impl HassClient {
         //send command to unsubscribe from specific event
         let response = self.command(unsubscribe_req).await.unwrap();
 
-        //Remove the event_type and the callback fromthe event_listeners hashmap
+        //Remove the event_type and the callback from the event_listeners hashmap
         match response {
             Response::Result(v) if v.success == true => {
                 let mut table = self.event_listeners.lock().await;
