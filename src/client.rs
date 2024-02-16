@@ -1,6 +1,4 @@
 //! Home Assistant client implementation
-//!
-//! Provides an async connect and methods for issuing the supported commands.
 
 use crate::types::{
     Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassServices, Response,
@@ -20,8 +18,8 @@ use std::sync::{
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 
-/// HassClient sits between the communication between user and HomeAssistant Web Socket Server
-/// and creates some convenient functions to call the server  
+/// HassClient is a library that is meant to simplify the conversation with HomeAssistant Web Socket Server
+/// it provides a number of convenient functions that creates the requests and read the messages from server
 #[derive(Debug)]
 pub struct HassClient {
     // holds the id of the WS message
@@ -86,7 +84,7 @@ impl HassClient {
         }
     }
 
-    ///The API supports receiving a ping from the client and returning a pong.
+    /// The API supports receiving a ping from the client and returning a pong.
     /// This serves as a heartbeat to ensure the connection is still alive.
 
     pub async fn ping(&mut self) -> HassResult<String> {
@@ -108,7 +106,7 @@ impl HassClient {
         }
     }
 
-    ///This will get a dump of the current config in Home Assistant.
+    /// This will get the current config of the Home Assistant.
     ///
     /// The server will respond with a result message containing the config.
 
@@ -136,7 +134,7 @@ impl HassClient {
         }
     }
 
-    ///This will get a dump of all the current states in Home Assistant.
+    /// This will get all the current states from Home Assistant.
     ///
     /// The server will respond with a result message containing the states.
 
@@ -163,7 +161,7 @@ impl HassClient {
         }
     }
 
-    ///This will get a dump of the current services in Home Assistant.
+    /// This will get all the services from Home Assistant.
     ///
     /// The server will respond with a result message containing the services.
 
@@ -190,7 +188,7 @@ impl HassClient {
         }
     }
 
-    ///This will get a dump of the current registered panels in Home Assistant.
+    /// This will get all the registered panels from Home Assistant.
     ///
     /// The server will respond with a result message containing the current registered panels.
 
@@ -251,7 +249,7 @@ impl HassClient {
         }
     }
 
-    ///The command subscribe_event will subscribe your client to the event bus.
+    /// The command subscribe_event will subscribe your client to the event bus.
     ///
     /// You can either listen to all events or to a specific event type.
     /// If you want to listen to multiple event types, you will have to send multiple subscribe_events commands.
@@ -315,6 +313,7 @@ impl HassClient {
     }
 
     //used to send commands and receive responses from the gateway
+
     pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
         //transform to TungsteniteMessage to be sent to WebSocket
         let cmd_tungstenite = cmd.to_tungstenite_message();
@@ -347,6 +346,9 @@ impl HassClient {
         }
     }
 }
+
+/// convenient function that validates if the message received is an Event
+/// the Events should be processed by used in a separate async task
 
 pub fn check_if_event(message: &Result<TungsteniteMessage, Error>) -> HassResult<WSEvent> {
     match message {

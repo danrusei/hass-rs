@@ -1,6 +1,6 @@
 [package]
 name = "hass-rs"
-version = "0.2.0"
+version = "0.3.0"
 description = "An async websocket client for Home Assistant"
 keywords = ["hass", "homeassistant", "tokio", "async-std"]
 authors = ["Dan Rusei <dan.rusei@gmail.com>"]
@@ -8,7 +8,7 @@ repository = "https://github.com/danrusei/hass-rs"
 documentation = "https://docs.rs/hass-rs"
 readme = "README.md"
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
