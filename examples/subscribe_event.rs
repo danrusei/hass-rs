@@ -24,13 +24,8 @@ async fn ws_incoming_messages(
 ) {
     loop {
         while let Some(message) = stream.next().await {
-            //dbg!(&message);
-
-            //FIXME - maybe here we should call the function to check message,
-            //if it's WSEvent to do something otherwise to go to normal route !!!!!!
-            // if it is WSevent send directly to user, do not involve the library,
-            // the library only should check if the subscription is correct
-
+            // check if it is a WSEvent, if so send to the spawned tokio task, that should handle the event
+            // otherwise process the message and respond accordingly
             match check_if_event(&message) {
                 Ok(event) => {
                     let _ = event_sender.send(event).await;
@@ -62,12 +57,10 @@ async fn main() {
     let url = "ws://localhost:8123/api/websocket";
 
     println!("Connecting to - {}", url);
-    //let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
     let (wsclient, _) = connect_async(url).await.expect("Failed to connect");
     let (sink, stream) = wsclient.split();
 
     //Channels to recieve the Client Command and send it over to the Websocket server
-    // MAYBE migrate to multiple producers single consumer, instead of 2 distinct channels
     let (to_gateway, from_user) = mpsc::channel::<Message>(20);
     //Channels to receive the Response from the Websocket server and send it over to the Client
     let (to_user, from_gateway) = mpsc::channel::<Result<Message, Error>>(20);
@@ -92,15 +85,9 @@ async fn main() {
 
     println!("Subscribe to an Event");
 
-    let do_something = |item: WSEvent| {
-        println!(
-        "Closure is executed when the Event with the id: {} has been received, it was fired at {}", item.id,
-        item.event.time_fired );
-    };
-
     let mut id: u64 = 0;
 
-    match client.subscribe_event("state_changed", do_something).await {
+    match client.subscribe_event("state_changed").await {
         Ok(v) => {
             println!("Event subscribed: {:?}", v);
             id = v.id;
@@ -109,21 +96,22 @@ async fn main() {
         Err(err) => println!("Oh no, an error: {}", err),
     };
 
+    let subscriptions = client.subscriptions.clone();
+
     // Spawn a Tokio task to do whatever we want with the received events
     tokio::spawn(async move {
         loop {
             while let Some(message) = event_receiver.recv().await {
-                println!("Received: {:?}", message);
+                // process only events you have subscribed to
+                match subscriptions.get(&message.id) {
+                    Some(_) => println!("Event Received: {:?}", message),
+                    None => println!("Wrong event received: {:?}", message),
+                }
             }
         }
     });
 
     thread::sleep(time::Duration::from_secs(20));
-
-    // FIXME, once received the message in main thread
-    // ensure that it is a Valid message based on a known subscription
-    // therefore check with client.valid_subscription(event) function !!!
-    //println!("Event received {:?}", event);
 
     println!("Unsubscribe the Event");
 
@@ -137,3 +125,15 @@ async fn main() {
     // Await both tasks (optional, depending on your use case)
     let _ = tokio::try_join!(read_handle, write_handle);
 }
+
+// In order to Test go to Home Assistant --> Developer Tools --> Events , and fire the selected test Event
+//
+// Subscribe to an Event
+// Event subscribed: WSResult { id: 1, success: true, result: None, error: None }
+//
+// Event Received: WSEvent { id: 1, event: HassEvent { data: EventData { entity_id: None, new_state: None, old_state: None }, event_type: "state_changed", time_fired: "2024-02-16T09:46:45.013050+00:00", origin: "REMOTE", context: Context { id: "01HPRMZAWNXKVVPSP11QFJ53HB", parent_id: None, user_id: Some("f069978dd7964042824cb09287fe7c73") } } }
+// Event Received: WSEvent { id: 1, event: HassEvent { data: EventData { entity_id: None, new_state: None, old_state: None }, event_type: "state_changed", time_fired: "2024-02-16T09:46:46.038355+00:00", origin: "REMOTE", context: Context { id: "01HPRMZBWP8E5HQFNV60CJ9HB1", parent_id: None, user_id: Some("f069978dd7964042824cb09287fe7c73") } } }
+// Event Received: WSEvent { id: 1, event: HassEvent { data: EventData { entity_id: None, new_state: None, old_state: None }, event_type: "state_changed", time_fired: "2024-02-16T09:46:57.997747+00:00", origin: "REMOTE", context: Context { id: "01HPRMZQJDCEHT1PRQKK6H96AH", parent_id: None, user_id: Some("f069978dd7964042824cb09287fe7c73") } } }
+//
+// Unsubscribe the Event
+// Succefully unsubscribed: Ok

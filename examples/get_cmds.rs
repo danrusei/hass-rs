@@ -43,14 +43,12 @@ async fn main() {
     let url = "ws://localhost:8123/api/websocket";
 
     println!("Connecting to - {}", url);
-    //let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
     let (wsclient, _) = connect_async(url).await.expect("Failed to connect");
     let (sink, stream) = wsclient.split();
 
-    //Channels to recieve the Client Command and send it over to the Websocket server
-    // MAYBE migrate to multiple producers single consumer, instead of 2 distinct channels
+    //Channels to recieve the Client Command and send it over to Websocket server
     let (to_gateway, from_user) = mpsc::channel::<Message>(20);
-    //Channels to receive the Response from the Websocket server and send it over to the Client
+    //Channels to receive the Response from the Websocket server and send it over to Client
     let (to_user, from_gateway) = mpsc::channel::<Result<Message, Error>>(20);
 
     // Handle incoming messages in a separate task

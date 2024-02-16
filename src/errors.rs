@@ -70,14 +70,6 @@ impl fmt::Display for HassError {
     }
 }
 
-// impl From<SendError> for HassError {
-//     fn from(error: SendError) -> Self {
-//         match error {
-//             _ => HassError::ChannelSend(error),
-//         }
-//     }
-// }
-
 impl From<url::ParseError> for HassError {
     fn from(error: url::ParseError) -> Self {
         HassError::WrongAddressProvided(error)
@@ -89,15 +81,6 @@ impl From<serde_json::error::Error> for HassError {
         HassError::UnableToDeserialize(error)
     }
 }
-
-// impl From<tokio_tungstenite::tungstenite::Error> for HassError {
-//     fn from(error: tokio_tungstenite::tungstenite::Error) -> Self {
-//         match error {
-//             tokio_tungstenite::tungstenite::Error::ConnectionClosed => HassError::ConnectionClosed,
-//             _ => HassError::TokioTungsteniteError(error),
-//         }
-//     }
-// }
 
 impl From<tungstenite::error::Error> for HassError {
     fn from(error: tungstenite::error::Error) -> Self {

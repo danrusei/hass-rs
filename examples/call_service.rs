@@ -44,14 +44,12 @@ async fn main() {
     let url = "ws://localhost:8123/api/websocket";
 
     println!("Connecting to - {}", url);
-    //let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
     let (wsclient, _) = connect_async(url).await.expect("Failed to connect");
     let (sink, stream) = wsclient.split();
 
-    //Channels to recieve the Client Command and send it over to the Websocket server
-    // MAYBE migrate to multiple producers single consumer, instead of 2 distinct channels
+    //Channels to recieve the Client Command and send it over to Websocket server
     let (to_gateway, from_user) = mpsc::channel::<Message>(20);
-    //Channels to receive the Response from the Websocket server and send it over to the Client
+    //Channels to receive the Response from the Websocket server and send it over to Client
     let (to_user, from_gateway) = mpsc::channel::<Result<Message, Error>>(20);
 
     // Handle incoming messages in a separate task
@@ -100,7 +98,7 @@ async fn main() {
         .await
         .expect("Unable to retrieve the States");
 
-    //Validate if the selected **entity_id** exist
+    // Validate if the selected **entity_id** exist
     let entity_found = cmd2.iter().find(|e| e.entity_id == entity_id);
     if let Some(entity) = entity_found {
         println!("{}", entity);
@@ -130,19 +128,26 @@ async fn main() {
     }
 
     let _ = tokio::try_join!(read_handle, write_handle);
-
-    //
-    // I'm getting:
-    //
-    // HassEntity {
-    //     entity_id: media_player.bravia_4k_gb,
-    //     state: off,
-    //     last_changed: 2024-02-15T11:13:02.291378+00:00,
-    //     last_updated: 2024-02-15T11:13:27.686327+00:00,
-
-    // HassEntity {
-    //     entity_id: media_player.bravia_4k_gb,
-    //     state: paused,
-    //     last_changed: 2024-02-15T11:14:05.370810+00:00,
-    //     last_updated: 2024-02-15T11:14:05.370810+00:00
 }
+
+// Running it:
+//
+// Getting the States (Entities):
+//
+// HassEntity {
+//     entity_id: media_player.bravia_4k_gb,
+//     state: off,
+//     last_changed: 2024-02-15T11:13:02.291378+00:00,
+//     last_updated: 2024-02-15T11:13:27.686327+00:00,
+//
+// Calling a service:, in this specific case to turn ON the TV
+//
+// service: "command executed successfully"
+//
+// Getting the States (Entities):
+//
+// HassEntity {
+//     entity_id: media_player.bravia_4k_gb,
+//     state: paused,
+//     last_changed: 2024-02-15T11:14:05.370810+00:00,
+//     last_updated: 2024-02-15T11:14:05.370810+00:00
