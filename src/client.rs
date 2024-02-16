@@ -94,12 +94,6 @@ impl HassClient {
             Response::AuthInvalid(err) => return Err(HassError::AuthenticationFailed(err.message)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
-
-        // match value.msg_type.as_str() {
-        //     "auth_ok" => return Ok(()),
-        //     "auth_invalid" => return Err(HassError::AuthenticationFailed),
-        //     _ => return Err(HassError::UnknownPayloadReceived),
-        // }
     }
 
     ///The API supports receiving a ping from the client and returning a pong.
@@ -438,38 +432,23 @@ impl HassClient {
     //     }
     // }
 }
-
-pub fn check_if_event(
-    message: Result<TungsteniteMessage, Error>,
-) -> HassResult<(WSEvent, TungsteniteMessage)> {
+pub fn check_if_event(message: &Result<TungsteniteMessage, Error>) -> HassResult<WSEvent> {
     match message {
-        Ok(TungsteniteMessage::Text(ref data)) => {
+        Ok(TungsteniteMessage::Text(data)) => {
             //Serde: The tag identifying which variant we are dealing with is now inside of the content,
             // next to any other fields of the variant
 
-            //dbg!("{:?}", &data);
-
             let payload: Result<Response, HassError> =
-                serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
+                serde_json::from_str(&data).map_err(|err| HassError::from(err));
 
-            //Match on payload, and act accordingly, like execute the client defined closure if any Event received
-            match payload {
-                Ok(value) => match value {
-                    Response::Event(event) => {
-                        return Ok((
-                            event,
-                            message
-                                .ok()
-                                .expect("This should be a valid TungsteniteMessage"),
-                        ))
-                    }
-                    _ => todo!(),
-                },
-                _ => todo!(),
+            if let Ok(Response::Event(event)) = payload {
+                Ok(event)
+            } else {
+                Err(HassError::UnknownPayloadReceived)
             }
         }
         Err(error) => {
-            let err = Err(HassError::from(&error));
+            let err = Err(HassError::from(error));
             err
         }
         _ => return Err(HassError::UnknownPayloadReceived),

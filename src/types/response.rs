@@ -67,6 +67,7 @@ pub(crate) struct WSPong {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct WSEvent {
     pub id: u64,
+    // r#type: String,
     // #[serde(rename = "type")]
     // pub(crate) msg_type: String,
     pub event: HassEvent,

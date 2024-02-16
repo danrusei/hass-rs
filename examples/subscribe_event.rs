@@ -31,18 +31,13 @@ async fn ws_incoming_messages(
             // if it is WSevent send directly to user, do not involve the library,
             // the library only should check if the subscription is correct
 
-            match check_if_event(message) {
-                Ok((event, _)) => {
-                    event_sender.send(event).await;
+            match check_if_event(&message) {
+                Ok(event) => {
+                    let _ = event_sender.send(event).await;
                     continue;
                 }
-                Ok((_, message)) => {
-                    to_user.send(Ok(message)).await;
-                    continue;
-                }
-
-                Err(err) => {
-                    to_user.send(err).await;
+                _ => {
+                    let _ = to_user.send(message).await;
                     continue;
                 }
             }
@@ -78,7 +73,7 @@ async fn main() {
     let (to_user, from_gateway) = mpsc::channel::<Result<Message, Error>>(20);
 
     //Channel to receive the Event message from Websocket
-    let (event_sender, event_receiver) = mpsc::channel::<WSEvent>(20);
+    let (event_sender, mut event_receiver) = mpsc::channel::<WSEvent>(20);
 
     // Handle incoming messages in a separate task
     let read_handle = tokio::spawn(ws_incoming_messages(stream, to_user, event_sender));
@@ -113,6 +108,17 @@ async fn main() {
 
         Err(err) => println!("Oh no, an error: {}", err),
     };
+
+    // Spawn a Tokio task to do whatever we want with the received events
+    tokio::spawn(async move {
+        loop {
+            while let Some(message) = event_receiver.recv().await {
+                println!("Received: {:?}", message);
+            }
+        }
+    });
+
+    thread::sleep(time::Duration::from_secs(20));
 
     // FIXME, once received the message in main thread
     // ensure that it is a Valid message based on a known subscription

@@ -8,11 +8,11 @@ use std::fmt;
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct HassEntity {
     pub entity_id: String,
-    pub state: String,
     pub last_changed: String,
-    pub last_updated: String,
+    pub state: String,
     pub attributes: Value,
-    pub context: Context,
+    pub last_updated: String,
+    pub context: Option<Context>, //changed
 }
 
 /// General construct used by HassEntity and HassEvent
