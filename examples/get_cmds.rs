@@ -1,38 +1,9 @@
-# Hass-Rs
-
-A simple async Rust client library for interacting with Home Assistant **websocket** API.
-
-## Test environment
-
-Connect to your Home Assistant server, or follow the instructions from the [Instalation Guide](https://www.home-assistant.io/installation/).  
-For development, [docker](https://www.home-assistant.io/installation/linux#install-home-assistant-container) can be used to easily bootstrap a test environment.
-
-Steps to run the provided Examples:
-
-* clone the hass_rs github repository
-* run the homeassistant server in a docker container
-
-```bash
-docker run -d --name="home-assistant" -v /PATH_TO_YOUR_CONFIG:/config -v /etc/localtime:/etc/localtime:ro --net=host homeassistant/home-assistant:stable
-```
-
-* login to Home Assistant web interface: <http://localhost:8123/>
-* go to `Profile` --> `Long-Lived Access Tokens` and create a token to be used by hass_rs client
-* set the environment variable ***export HASS_TOKEN=<YOUR_TOKEN_HERE>***
-* run the example scripts: `cargo run --example get_cmds` or `cargo run --example call_service` or `cargo run --example subscribe_event`
-
-## Example usage
-
-Check the [Example folder](https://github.com/danrusei/hass-rs/tree/master/examples) for additional details on how to use various hass-rs functions.
-
-```rust
-use hass_rs::client::HassClient;
-
 use async_tungstenite::tungstenite::{Error, Message};
 use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
+use hass_rs::client::HassClient;
 use lazy_static::lazy_static;
 use std::env::var;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -62,7 +33,7 @@ async fn ws_outgoing_messages(
     loop {
         match from_user.recv().await {
             Some(msg) => sink.send(msg).await.expect("Failed to send message"),
-            None => continue,
+            None => todo!(),
         }
     }
 }
@@ -102,27 +73,32 @@ async fn main() {
         .expect("Unable to retrieve the Config");
     println!("config: {}\n", cmd2);
 
+    println!("Getting the States:\n");
+    let cmd3 = client
+        .get_states()
+        .await
+        .expect("Unable to retrieve the States");
+    for entity in cmd3 {
+        println!("entities: {}\n", entity);
+    }
+
+    println!("Getting the Panels:\n");
+    let cmd5 = client
+        .get_panels()
+        .await
+        .expect("Unable to retrieve the Panels");
+    for (key, pannel) in cmd5 {
+        println!("pannel_key: {}\n", key);
+        println!("pannel: {}\n", pannel);
+    }
+
+    println!("Getting the Services:\n");
+    let cmd4 = client
+        .get_services()
+        .await
+        .expect("Unable to retrieve the Services");
+    println!("services: {}\n", cmd4);
+
     // Await both tasks (optional, depending on your use case)
     let _ = tokio::try_join!(read_handle, write_handle);
 }
-```
-
-## Development status
-
-* [x] Create the client
-  * [ ] Automatic reconnection (TBD)
-  * [x] Authenticate using long-lived access tokens
-  * [ ] Authenticate using OAuth2 (TBD)
-* [x] Call a service
-* [x] Subscribe
-  * [x] Events
-  * [ ] Config (you need this?, raise an Issue)
-  * [ ] Services (you need this?, raise an Issue)
-* [x] UnSubscribe
-* [x] Fetch Commands
-  * [x] Fetching states
-  * [x] Fetching config
-  * [x] Fetching services
-  * [x] Fetching panels
-  * [ ] Fetching media player thumbnails (you need this?, raise an Issue)
-* [ ] Ping - Pong
