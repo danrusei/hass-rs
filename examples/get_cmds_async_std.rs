@@ -9,9 +9,6 @@ use futures_util::{
 use hass_rs::client::HassClient;
 use lazy_static::lazy_static;
 use std::env::var;
-//use tokio::io::{AsyncRead, AsyncWrite};
-//use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
-//use async_tungstenite::{connect_async, WebSocketStream};
 
 lazy_static! {
     static ref TOKEN: String =

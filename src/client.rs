@@ -68,11 +68,7 @@ impl HassClient {
             .ok_or_else(|| HassError::ConnectionClosed)?;
 
         #[cfg(feature = "use-async-std")]
-        let _ = self
-            .from_gateway
-            .recv()
-            .await
-            .or_else(|| HassError::ConnectionClosed)?;
+        let _ = self.from_gateway.recv().await?;
 
         //Authenticate with Command::AuthInit and payload {"type": "auth", "access_token": "XXXXX"}
         let auth_req = Command::AuthInit(Auth {
@@ -363,7 +359,7 @@ impl HassClient {
 
         #[cfg(feature = "use-async-std")]
         match self.from_gateway.recv().await {
-            Some(Ok(item)) => match item {
+            Ok(Ok(item)) => match item {
                 TungsteniteMessage::Text(data) => {
                     //Serde: The tag identifying which variant we are dealing with is now inside of the content,
                     // next to any other fields of the variant
@@ -375,12 +371,12 @@ impl HassClient {
                 }
                 _ => Err(HassError::UnknownPayloadReceived),
             },
-            Some(Err(error)) => {
+            Ok(Err(error)) => {
                 let err = Err(HassError::from(&error));
                 err
             }
 
-            None => Err(HassError::UnknownPayloadReceived),
+            Err(error) => Err(HassError::RecvError(error)),
         }
     }
 }
