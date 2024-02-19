@@ -2,21 +2,26 @@ name: Rust
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --verbose
+      - name: Run example get_cmds
+        run: cargo test --example get_cmds
+      - name: Run example call_service
+        run: cargo test --example call_service
+      - name: Run example subscribe_event
+        run: cargo test --example subscribe_event
+      - name: Run example get_cmds with async_std
+        run: cargo test --example get_cmds_async_std --features use-async-std --no-default-features
