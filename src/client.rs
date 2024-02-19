@@ -5,10 +5,10 @@ use crate::types::{
     Subscribe, Unsubscribe, WSEvent,
 };
 use crate::{HassError, HassResult, WSResult};
+use crate::{Receiver, Sender};
+
 use async_tungstenite::tungstenite::Error;
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
-
-//use futures_util::StreamExt;
 use log::info;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -16,7 +16,6 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
-use tokio::sync::mpsc::{Receiver, Sender};
 
 /// HassClient is a library that is meant to simplify the conversation with HomeAssistant Web Socket Server
 /// it provides a number of convenient functions that creates the requests and read the messages from server
@@ -60,11 +59,15 @@ impl HassClient {
 
     pub async fn auth_with_longlivedtoken(&mut self, token: &str) -> HassResult<()> {
         // Auth Request from Gateway { "type": "auth_required"}
+        #[cfg(feature = "use-tokio")]
         let _ = self
             .from_gateway
             .recv()
             .await
             .ok_or_else(|| HassError::ConnectionClosed)?;
+
+        #[cfg(feature = "use-async-std")]
+        let _ = self.from_gateway.recv().await?;
 
         //Authenticate with Command::AuthInit and payload {"type": "auth", "access_token": "XXXXX"}
         let auth_req = Command::AuthInit(Auth {
@@ -319,11 +322,19 @@ impl HassClient {
         let cmd_tungstenite = cmd.to_tungstenite_message();
 
         // Send the auth command to gateway
+        #[cfg(feature = "use-tokio")]
         self.to_gateway
             .send(cmd_tungstenite)
             .await
             .map_err(|_| HassError::ConnectionClosed)?;
 
+        #[cfg(feature = "use-async-std")]
+        self.to_gateway
+            .send(cmd_tungstenite)
+            .await
+            .map_err(|_| HassError::ConnectionClosed)?;
+
+        #[cfg(feature = "use-tokio")]
         match self.from_gateway.recv().await {
             Some(Ok(item)) => match item {
                 TungsteniteMessage::Text(data) => {
@@ -343,6 +354,28 @@ impl HassClient {
             }
 
             None => Err(HassError::UnknownPayloadReceived),
+        }
+
+        #[cfg(feature = "use-async-std")]
+        match self.from_gateway.recv().await {
+            Ok(Ok(item)) => match item {
+                TungsteniteMessage::Text(data) => {
+                    //Serde: The tag identifying which variant we are dealing with is now inside of the content,
+                    // next to any other fields of the variant
+
+                    let payload: Result<Response, HassError> =
+                        serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
+
+                    payload
+                }
+                _ => Err(HassError::UnknownPayloadReceived),
+            },
+            Ok(Err(error)) => {
+                let err = Err(HassError::from(&error));
+                err
+            }
+
+            Err(error) => Err(HassError::RecvError(error)),
         }
     }
 }

@@ -3,8 +3,10 @@
 use crate::types::WSResult;
 use async_tungstenite::tungstenite;
 
+#[cfg(feature = "use-async-std")]
+use async_std::channel::RecvError;
+
 use std::fmt;
-//use tokio_tungstenite::tungstenite;
 
 pub type HassResult<T> = std::result::Result<T, HassError>;
 
@@ -17,14 +19,14 @@ pub enum HassError {
     /// Returned when it is unable to authenticate
     AuthenticationFailed(String),
 
-    /// Returned when unable to parse the websocket server address
-    WrongAddressProvided(url::ParseError),
-
     /// Returned when serde was unable to deserialize the values
     UnableToDeserialize(serde_json::error::Error),
 
     /// Returned when connection has unexpected failed
     ConnectionClosed,
+
+    #[cfg(feature = "use-async-std")]
+    RecvError(RecvError),
 
     /// Tungstenite error
     TungsteniteError(tungstenite::error::Error),
@@ -50,13 +52,12 @@ impl fmt::Display for HassError {
             Self::CantConnectToGateway => write!(f, "Cannot connect to gateway"),
             Self::ConnectionClosed => write!(f, "Connection closed unexpectedly"),
             Self::AuthenticationFailed(e) => write!(f, "Authentication has failed: {}", e),
-            Self::WrongAddressProvided(e) => {
-                write!(f, "Could not parse the provided address: {}", e)
-            }
             Self::UnableToDeserialize(e) => {
                 write!(f, "Unable to deserialize the received value: {}", e)
             }
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
+            #[cfg(feature = "use-async-std")]
+            Self::RecvError(e) => write!(f, "Receiver Error: {}", e),
             //Self::TokioTungsteniteError(e) => write!(f, "Tokio Tungstenite Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
             Self::ReponseError(e) => write!(
@@ -70,9 +71,10 @@ impl fmt::Display for HassError {
     }
 }
 
-impl From<url::ParseError> for HassError {
-    fn from(error: url::ParseError) -> Self {
-        HassError::WrongAddressProvided(error)
+#[cfg(feature = "use-async-std")]
+impl From<RecvError> for HassError {
+    fn from(error: RecvError) -> Self {
+        HassError::RecvError(error)
     }
 }
 
