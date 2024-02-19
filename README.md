@@ -9,17 +9,21 @@ For development, [docker](https://www.home-assistant.io/installation/linux#insta
 
 Steps to run the provided Examples:
 
-* clone the hass_rs github repository
-* run the homeassistant server in a docker container
+* Clone the hass_rs github repository
+* Run the homeassistant server in a docker container
 
 ```bash
 docker run -d --name="home-assistant" -v /PATH_TO_YOUR_CONFIG:/config -v /etc/localtime:/etc/localtime:ro --net=host homeassistant/home-assistant:stable
 ```
 
-* login to Home Assistant web interface: <http://localhost:8123/>
-* go to `Profile` --> `Long-Lived Access Tokens` and create a token to be used by hass_rs client
-* set the environment variable ***export HASS_TOKEN=<YOUR_TOKEN_HERE>***
-* run the example scripts: `cargo run --example get_cmds` or `cargo run --example call_service` or `cargo run --example subscribe_event`
+* Login to Home Assistant web interface: <http://localhost:8123/>
+* Go to `Profile` --> `Long-Lived Access Tokens` and create a token to be used by hass_rs client
+* Set the environment variable ***export HASS_TOKEN=<YOUR_TOKEN_HERE>***
+* Run the example scripts:
+  * `cargo run --example get_cmds`
+  * `cargo run --example call_service`
+  * `cargo run --example subscribe_event`
+  * `cargo run --example get_cmds_async_std --features use-async-std --no-default-features` - example with **async-std** runtime
 
 ## Example usage
 

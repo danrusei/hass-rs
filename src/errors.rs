@@ -7,7 +7,6 @@ use async_tungstenite::tungstenite;
 use async_std::channel::RecvError;
 
 use std::fmt;
-//use tokio_tungstenite::tungstenite;
 
 pub type HassResult<T> = std::result::Result<T, HassError>;
 
@@ -19,9 +18,6 @@ pub enum HassError {
 
     /// Returned when it is unable to authenticate
     AuthenticationFailed(String),
-
-    /// Returned when unable to parse the websocket server address
-    WrongAddressProvided(url::ParseError),
 
     /// Returned when serde was unable to deserialize the values
     UnableToDeserialize(serde_json::error::Error),
@@ -56,9 +52,6 @@ impl fmt::Display for HassError {
             Self::CantConnectToGateway => write!(f, "Cannot connect to gateway"),
             Self::ConnectionClosed => write!(f, "Connection closed unexpectedly"),
             Self::AuthenticationFailed(e) => write!(f, "Authentication has failed: {}", e),
-            Self::WrongAddressProvided(e) => {
-                write!(f, "Could not parse the provided address: {}", e)
-            }
             Self::UnableToDeserialize(e) => {
                 write!(f, "Unable to deserialize the received value: {}", e)
             }
@@ -75,12 +68,6 @@ impl fmt::Display for HassError {
             ),
             Self::Generic(detail) => write!(f, "Generic Error: {}", detail),
         }
-    }
-}
-
-impl From<url::ParseError> for HassError {
-    fn from(error: url::ParseError) -> Self {
-        HassError::WrongAddressProvided(error)
     }
 }
 

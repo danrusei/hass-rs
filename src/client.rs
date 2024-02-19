@@ -5,11 +5,10 @@ use crate::types::{
     Subscribe, Unsubscribe, WSEvent,
 };
 use crate::{HassError, HassResult, WSResult};
+use crate::{Receiver, Sender};
+
 use async_tungstenite::tungstenite::Error;
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
-
-//use futures_util::StreamExt;
-use crate::{Receiver, Sender};
 use log::info;
 use serde_json::Value;
 use std::collections::HashMap;
