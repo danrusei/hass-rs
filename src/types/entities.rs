@@ -5,6 +5,7 @@ use std::fmt;
 /// This object represents the Home Assistant Entity
 ///
 /// [Entity](https://developers.home-assistant.io/docs/core/entity/)
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct HassEntity {
     pub entity_id: String,
@@ -16,6 +17,7 @@ pub struct HassEntity {
 }
 
 /// General construct used by HassEntity and HassEvent
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Context {
     pub id: String,

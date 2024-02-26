@@ -7,6 +7,7 @@ use std::fmt;
 ///
 /// This will get a dump of the current services in Home Assistant.
 /// [Fetch Services](https://developers.home-assistant.io/docs/api/websocket/#fetching-services)
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassServices(pub Domain);
 
@@ -20,6 +21,7 @@ pub type ServiceName = HashMap<String, HassService>;
 ///
 /// This will get a dump of the current services in Home Assistant.
 /// [Fetch Services](https://developers.home-assistant.io/docs/api/websocket/#fetching-services)
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassService {
     pub name: Option<String>,
@@ -32,6 +34,7 @@ pub struct HassService {
 pub type FieldName = HashMap<String, Field>;
 
 ///This is part of HassService
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Field {
     pub name: Option<String>,

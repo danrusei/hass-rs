@@ -8,6 +8,7 @@ use std::fmt;
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)
 ///
 ///This is created against StateChangedEvent, may not work with other event types
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct HassEvent {
     pub data: EventData,
@@ -18,6 +19,7 @@ pub struct HassEvent {
 }
 
 /// This is part of HassEvent
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct EventData {
     pub entity_id: Option<String>,

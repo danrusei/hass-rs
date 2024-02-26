@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 pub type HassPanels = HashMap<String, HassPanel>;
 
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassPanel {
     pub component_name: String,
@@ -15,6 +16,7 @@ pub struct HassPanel {
     pub url_path: String,
 }
 
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassPanelConfig {
     #[serde(rename = "_panel_custom")]
@@ -23,6 +25,7 @@ pub struct HassPanelConfig {
     pub title: Option<String>,
 }
 
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassCustomPanelConfig {
     pub embed_iframe: bool,

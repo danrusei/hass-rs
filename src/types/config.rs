@@ -5,6 +5,7 @@ use std::fmt;
 ///
 /// This will get a dump of the current config in Home Assistant.
 /// [Fetch Config](https://developers.home-assistant.io/docs/api/websocket/#fetching-config)
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct HassConfig {
     pub latitude: f32,
@@ -24,6 +25,7 @@ pub struct HassConfig {
 }
 
 /// This is part of HassConfig
+#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct UnitSystem {
     pub length: String,
