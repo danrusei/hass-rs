@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt;
@@ -7,8 +7,7 @@ use std::fmt;
 ///
 /// This will get a dump of the current services in Home Assistant.
 /// [Fetch Services](https://developers.home-assistant.io/docs/api/websocket/#fetching-services)
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct HassServices(pub Domain);
 
 /// This is part of HassServices
@@ -21,8 +20,7 @@ pub type ServiceName = HashMap<String, HassService>;
 ///
 /// This will get a dump of the current services in Home Assistant.
 /// [Fetch Services](https://developers.home-assistant.io/docs/api/websocket/#fetching-services)
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct HassService {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -34,8 +32,7 @@ pub struct HassService {
 pub type FieldName = HashMap<String, Field>;
 
 ///This is part of HassService
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Field {
     pub name: Option<String>,
     pub description: Option<String>,

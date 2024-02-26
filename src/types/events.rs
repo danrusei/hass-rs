@@ -1,5 +1,5 @@
 use crate::types::{Context, HassEntity};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// This object represents the Home Assistant Event
@@ -8,8 +8,7 @@ use std::fmt;
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)
 ///
 ///This is created against StateChangedEvent, may not work with other event types
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct HassEvent {
     pub data: EventData,
     pub event_type: String,
@@ -19,8 +18,7 @@ pub struct HassEvent {
 }
 
 /// This is part of HassEvent
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct EventData {
     pub entity_id: Option<String>,
     pub new_state: Option<HassEntity>,

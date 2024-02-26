@@ -16,7 +16,6 @@ edition = "2021"
 default = ["use-tokio"]
 use-tokio = ["tokio"]
 use-async-std = ["async-std"]
-serde-serialize = []
 
 [dependencies]
 futures-util = "0.3.30"

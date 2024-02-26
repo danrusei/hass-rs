@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub type HassPanels = HashMap<String, HassPanel>;
 
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct HassPanel {
     pub component_name: String,
     pub config: Option<HassPanelConfig>,
@@ -16,8 +15,7 @@ pub struct HassPanel {
     pub url_path: String,
 }
 
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct HassPanelConfig {
     #[serde(rename = "_panel_custom")]
     pub custom_panel: Option<HassCustomPanelConfig>,
@@ -25,8 +23,7 @@ pub struct HassPanelConfig {
     pub title: Option<String>,
 }
 
-#[cfg_attr(feature = "serde-serialize", derive(serde::Serialize))]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct HassCustomPanelConfig {
     pub embed_iframe: bool,
     pub module_url: Option<String>,
