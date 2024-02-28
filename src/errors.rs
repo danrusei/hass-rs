@@ -5,7 +5,6 @@ use async_tungstenite::tungstenite;
 
 #[cfg(feature = "use-async-std")]
 use async_std::channel::RecvError;
-
 use std::fmt;
 
 pub type HassResult<T> = std::result::Result<T, HassError>;
@@ -13,9 +12,6 @@ pub type HassResult<T> = std::result::Result<T, HassError>;
 /// The error enum for Hass
 #[derive(Debug)]
 pub enum HassError {
-    /// Returned when the connection to gateway has failed
-    CantConnectToGateway,
-
     /// Returned when it is unable to authenticate
     AuthenticationFailed(String),
 
@@ -24,6 +20,9 @@ pub enum HassError {
 
     /// Returned when connection has unexpected failed
     ConnectionClosed,
+
+    /// Mpsc channel SendError<T> message
+    SendError(String),
 
     #[cfg(feature = "use-async-std")]
     RecvError(RecvError),
@@ -49,8 +48,9 @@ impl std::error::Error for HassError {}
 impl fmt::Display for HassError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::CantConnectToGateway => write!(f, "Cannot connect to gateway"),
+            // Self::CantConnectToGateway => write!(f, "Cannot connect to gateway"),
             Self::ConnectionClosed => write!(f, "Connection closed unexpectedly"),
+            Self::SendError(e) => write!(f, "Unable to send the message on channel: {}", e),
             Self::AuthenticationFailed(e) => write!(f, "Authentication has failed: {}", e),
             Self::UnableToDeserialize(e) => {
                 write!(f, "Unable to deserialize the received value: {}", e)

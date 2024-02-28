@@ -9,7 +9,6 @@ use crate::{Receiver, Sender};
 
 use async_tungstenite::tungstenite::Error;
 use async_tungstenite::tungstenite::Message as TungsteniteMessage;
-use log::info;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{
@@ -59,25 +58,21 @@ impl HassClient {
 
     pub async fn auth_with_longlivedtoken(&mut self, token: &str) -> HassResult<()> {
         // Auth Request from Gateway { "type": "auth_required"}
-        #[cfg(feature = "use-tokio")]
-        let _ = self
-            .from_gateway
-            .recv()
-            .await
-            .ok_or_else(|| HassError::ConnectionClosed)?;
-
-        #[cfg(feature = "use-async-std")]
-        let _ = self.from_gateway.recv().await?;
+        if let Ok(Response::AuthRequired(msg)) = self.ws_receive().await {
+            if msg.msg_type != "auth_required".to_string() {
+                return Err(HassError::Generic(
+                    "Expecting the first message from server to be auth_required".to_string(),
+                ));
+            }
+        }
 
         //Authenticate with Command::AuthInit and payload {"type": "auth", "access_token": "XXXXX"}
-        let auth_req = Command::AuthInit(Auth {
+        let auth_message = Command::AuthInit(Auth {
             msg_type: "auth".to_owned(),
             access_token: token.to_owned(),
         });
 
-        info!("{:?}", auth_req);
-
-        let response = self.command(auth_req).await?;
+        let response = self.command(auth_message).await?;
 
         //Check if the authetication was succefully, should receive {"type": "auth_ok"}
         match response {
@@ -316,7 +311,6 @@ impl HassClient {
     }
 
     //used to send commands and receive responses from the gateway
-
     pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
         //transform to TungsteniteMessage to be sent to WebSocket
         let cmd_tungstenite = cmd.to_tungstenite_message();
@@ -326,14 +320,19 @@ impl HassClient {
         self.to_gateway
             .send(cmd_tungstenite)
             .await
-            .map_err(|_| HassError::ConnectionClosed)?;
+            .map_err(|err| HassError::SendError(err.to_string()))?;
 
         #[cfg(feature = "use-async-std")]
         self.to_gateway
             .send(cmd_tungstenite)
             .await
-            .map_err(|_| HassError::ConnectionClosed)?;
+            .map_err(|err| HassError::SendError(err.to_string()))?;
 
+        self.ws_receive().await
+    }
+
+    //read the messages from the Websocket connection
+    pub(crate) async fn ws_receive(&mut self) -> HassResult<Response> {
         #[cfg(feature = "use-tokio")]
         match self.from_gateway.recv().await {
             Some(Ok(item)) => match item {
@@ -341,8 +340,8 @@ impl HassClient {
                     //Serde: The tag identifying which variant we are dealing with is now inside of the content,
                     // next to any other fields of the variant
 
-                    let payload: Result<Response, HassError> =
-                        serde_json::from_str(&data).map_err(|_| HassError::UnknownPayloadReceived);
+                    let payload: Result<Response, HassError> = serde_json::from_str(&data)
+                        .map_err(|err| HassError::UnableToDeserialize(err));
 
                     payload
                 }

@@ -92,12 +92,12 @@ async fn main() {
         println!("pannel: {}\n", pannel);
     }
 
-    println!("Getting the Services:\n");
-    let cmd4 = client
-        .get_services()
-        .await
-        .expect("Unable to retrieve the Services");
-    println!("services: {}\n", cmd4);
+    // println!("Getting the Services:\n");
+    // let cmd4 = client
+    //     .get_services()
+    //     .await
+    //     .expect("Unable to retrieve the Services");
+    // println!("services: {}\n", cmd4);
 
     // Await both tasks (optional, depending on your use case)
     let _ = tokio::try_join!(read_handle, write_handle);

@@ -29,8 +29,8 @@ pub(crate) enum Response {
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub(crate) struct AuthRequired {
-    //  #[serde(rename = "type")]
-    //  pub(crate) msg_type: String,
+    #[serde(rename = "type")]
+    pub(crate) msg_type: String,
     pub(crate) ha_version: String,
 }
 
