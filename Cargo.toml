@@ -9,6 +9,7 @@ documentation = "https://docs.rs/hass-rs"
 readme = "README.md"
 license = "MIT"
 edition = "2021"
+exclude = [".github/*",]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
