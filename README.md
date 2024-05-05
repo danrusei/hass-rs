@@ -4,7 +4,7 @@ A simple async Rust client library for interacting with Home Assistant **websock
 
 ## Test environment
 
-Connect to your Home Assistant server, or follow the instructions from the [Instalation Guide](https://www.home-assistant.io/installation/).  
+Connect to your Home Assistant server, or follow the instructions from the [Installation Guide](https://www.home-assistant.io/installation/).  
 For development, [docker](https://www.home-assistant.io/installation/linux#install-home-assistant-container) can be used to easily bootstrap a test environment.
 
 Steps to run the provided Examples:
@@ -16,7 +16,7 @@ Steps to run the provided Examples:
 docker run -d --name="home-assistant" -v /PATH_TO_YOUR_CONFIG:/config -v /etc/localtime:/etc/localtime:ro --net=host homeassistant/home-assistant:stable
 ```
 
-* Login to Home Assistant web interface: <http://localhost:8123/>
+* Login to the Home Assistant web interface: <http://localhost:8123/>
 * Go to `Profile` --> `Long-Lived Access Tokens` and create a token to be used by hass_rs client
 * Set the environment variable ***export HASS_TOKEN=<YOUR_TOKEN_HERE>***
 * Run the example scripts:
