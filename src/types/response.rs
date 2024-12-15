@@ -107,10 +107,6 @@ impl WSResult {
         }
         Err(crate::HassError::ResponseError(self))
     }
-
-    pub fn unwrap_err(self) -> ErrorCode {
-        self.error.unwrap()
-    }
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
