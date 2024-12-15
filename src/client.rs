@@ -99,7 +99,7 @@ impl HassClient {
         //Check the response, if the Pong was received
         match response {
             Response::Pong(_v) => Ok("pong".to_owned()),
-            Response::Result(err) => return Err(HassError::ReponseError(err)),
+            Response::Result(err) => return Err(HassError::ResponseError(err)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
@@ -126,7 +126,7 @@ impl HassClient {
                     )?;
                     return Ok(config);
                 }
-                false => return Err(HassError::ReponseError(data)),
+                false => return Err(HassError::ResponseError(data)),
             },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
@@ -153,7 +153,7 @@ impl HassClient {
                         serde_json::from_value(data.result.expect("Expecting to get the States"))?;
                     return Ok(states);
                 }
-                false => return Err(HassError::ReponseError(data)),
+                false => return Err(HassError::ResponseError(data)),
             },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
@@ -180,7 +180,7 @@ impl HassClient {
                     )?;
                     return Ok(services);
                 }
-                false => return Err(HassError::ReponseError(data)),
+                false => return Err(HassError::ResponseError(data)),
             },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
@@ -207,7 +207,7 @@ impl HassClient {
                         serde_json::from_value(data.result.expect("Expecting panels"))?;
                     return Ok(services);
                 }
-                false => return Err(HassError::ReponseError(data)),
+                false => return Err(HassError::ResponseError(data)),
             },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
@@ -241,7 +241,7 @@ impl HassClient {
         match response {
             Response::Result(data) => match data.success {
                 true => return Ok("command executed successfully".to_owned()),
-                false => return Err(HassError::ReponseError(data)),
+                false => return Err(HassError::ResponseError(data)),
             },
             _ => return Err(HassError::UnknownPayloadReceived),
         }
@@ -274,7 +274,7 @@ impl HassClient {
                 self.subscriptions.insert(v.id, event_name.to_owned());
                 return Ok(v);
             }
-            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
+            Response::Result(v) if v.success == false => return Err(HassError::ResponseError(v)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
@@ -305,7 +305,7 @@ impl HassClient {
                 }
                 return Err(HassError::Generic("Wrong subscription ID".to_owned()));
             }
-            Response::Result(v) if v.success == false => return Err(HassError::ReponseError(v)),
+            Response::Result(v) if v.success == false => return Err(HassError::ResponseError(v)),
             _ => return Err(HassError::UnknownPayloadReceived),
         }
     }
@@ -339,10 +339,7 @@ impl HassClient {
                 }
                 _ => Err(HassError::UnknownPayloadReceived),
             },
-            Some(Err(error)) => {
-                let err = Err(HassError::from(&error));
-                err
-            }
+            Some(Err(error)) => Err(HassError::from(error)),
 
             None => Err(HassError::UnknownPayloadReceived),
         }
@@ -351,9 +348,10 @@ impl HassClient {
 
 /// convenient function that validates if the message received is an Event
 /// the Events should be processed by used in a separate async task
-
-pub fn check_if_event(message: &Result<TungsteniteMessage, Error>) -> HassResult<WSEvent> {
-    match message {
+pub fn check_if_event(
+    result: Result<TungsteniteMessage, Error>,
+) -> Result<WSEvent, Result<TungsteniteMessage, Error>> {
+    match result {
         Ok(TungsteniteMessage::Text(data)) => {
             //Serde: The tag identifying which variant we are dealing with is now inside of the content,
             // next to any other fields of the variant
@@ -364,14 +362,10 @@ pub fn check_if_event(message: &Result<TungsteniteMessage, Error>) -> HassResult
             if let Ok(Response::Event(event)) = payload {
                 Ok(event)
             } else {
-                Err(HassError::UnknownPayloadReceived)
+                Err(Ok(TungsteniteMessage::Text(data)))
             }
         }
-        Err(error) => {
-            let err = Err(HassError::from(error));
-            err
-        }
-        _ => return Err(HassError::UnknownPayloadReceived),
+        result => Err(result),
     }
 }
 

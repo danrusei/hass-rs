@@ -26,12 +26,12 @@ async fn ws_incoming_messages(
         while let Some(message) = stream.next().await {
             // check if it is a WSEvent, if so send to the spawned tokio task, that should handle the event
             // otherwise process the message and respond accordingly
-            match check_if_event(&message) {
+            match check_if_event(message) {
                 Ok(event) => {
                     let _ = event_sender.send(event).await;
                     continue;
                 }
-                _ => {
+                Err(message) => {
                     let _ = to_user.send(message).await;
                     continue;
                 }
