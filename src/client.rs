@@ -78,7 +78,7 @@ impl HassClient {
         match response {
             Response::AuthOk(_) => Ok(()),
             Response::AuthInvalid(err) => return Err(HassError::AuthenticationFailed(err.message)),
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -100,7 +100,7 @@ impl HassClient {
         match response {
             Response::Pong(_v) => Ok("pong".to_owned()),
             Response::Result(err) => return Err(HassError::ResponseError(err)),
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -128,7 +128,7 @@ impl HassClient {
                 }
                 false => return Err(HassError::ResponseError(data)),
             },
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -155,7 +155,7 @@ impl HassClient {
                 }
                 false => return Err(HassError::ResponseError(data)),
             },
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -182,7 +182,7 @@ impl HassClient {
                 }
                 false => return Err(HassError::ResponseError(data)),
             },
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -209,7 +209,7 @@ impl HassClient {
                 }
                 false => return Err(HassError::ResponseError(data)),
             },
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -243,7 +243,7 @@ impl HassClient {
                 true => return Ok("command executed successfully".to_owned()),
                 false => return Err(HassError::ResponseError(data)),
             },
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -275,7 +275,7 @@ impl HassClient {
                 return Ok(v);
             }
             Response::Result(v) if v.success == false => return Err(HassError::ResponseError(v)),
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -306,7 +306,7 @@ impl HassClient {
                 return Err(HassError::Generic("Wrong subscription ID".to_owned()));
             }
             Response::Result(v) if v.success == false => return Err(HassError::ResponseError(v)),
-            _ => return Err(HassError::UnknownPayloadReceived),
+            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -337,11 +337,11 @@ impl HassClient {
 
                     payload
                 }
-                _ => Err(HassError::UnknownPayloadReceived),
+                msg => Err(HassError::UnexpectedMessage(msg)),
             },
             Some(Err(error)) => Err(HassError::from(error)),
 
-            None => Err(HassError::UnknownPayloadReceived),
+            None => Err(HassError::ConnectionClosed),
         }
     }
 }

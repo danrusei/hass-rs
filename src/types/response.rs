@@ -7,7 +7,7 @@ use serde_json::Value;
 /// next to any other fields of the variant.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub(crate) enum Response {
+pub enum Response {
     //request to autheticate
     AuthRequired(AuthRequired),
     //authetication suceeded
@@ -30,36 +30,36 @@ pub(crate) enum Response {
 // that ask to provide a authetication method
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub(crate) struct AuthRequired {
+pub struct AuthRequired {
     #[serde(rename = "type")]
-    pub(crate) msg_type: String,
-    pub(crate) ha_version: String,
+    pub msg_type: String,
+    pub ha_version: String,
 }
 
 // this is received when the service successfully autheticate
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub(crate) struct AuthOk {
+pub struct AuthOk {
     //  #[serde(rename = "type")]
-    //  pub(crate) msg_type: String,
-    pub(crate) ha_version: String,
+    //  pub msg_type: String,
+    pub ha_version: String,
 }
 
 // this is received if the authetication failed
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub(crate) struct AuthInvalid {
+pub struct AuthInvalid {
     // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
-    pub(crate) message: String,
+    // pub msg_type: String,
+    pub message: String,
 }
 
 // this is received as a response to a ping request
 #[derive(Debug, Deserialize, PartialEq)]
-pub(crate) struct WSPong {
-    pub(crate) id: u64,
+pub struct WSPong {
+    pub id: u64,
     // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
+    // pub msg_type: String,
 }
 
 ///	This object represents the Home Assistant Event
@@ -71,7 +71,7 @@ pub struct WSEvent {
     pub id: u64,
     // r#type: String,
     // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
+    // pub msg_type: String,
     pub event: HassEvent,
 }
 
@@ -83,7 +83,7 @@ pub struct WSEvent {
 pub struct WSResult {
     pub id: u64,
     // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
+    // pub msg_type: String,
     pub success: bool,
     pub result: Option<Value>,
     pub error: Option<ErrorCode>,

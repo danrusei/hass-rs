@@ -1,5 +1,6 @@
 //! Convenient error handling
 
+use crate::types::Response;
 use crate::types::WSResult;
 use thiserror::Error;
 use tokio_tungstenite::tungstenite;
@@ -30,8 +31,12 @@ pub enum HassError {
     TungsteniteError(#[from] tungstenite::error::Error),
 
     /// Returned when an unknown message format is received
-    #[error("The received payload is unknown")]
-    UnknownPayloadReceived,
+    #[error("The received payload is unknown {0:?}")]
+    UnknownPayloadReceived(Response),
+
+    /// Returned when an unknown message format is received
+    #[error("Received an unexpected message: {0:?}")]
+    UnexpectedMessage(tungstenite::Message),
 
     /// Returned the error received from the Home Assistant Gateway
     #[error("ResponseError: {0:?}")]
