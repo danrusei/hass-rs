@@ -2,19 +2,24 @@
 
 use crate::types::{
     Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassServices, Response,
-    Subscribe, Unsubscribe, WSEvent,
+    Subscribe, WSEvent,
 };
-use crate::{HassError, HassResult, WSResult};
-use crate::{Receiver, Sender};
+use crate::{HassError, HassResult};
 
+use futures_util::{
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
+use parking_lot::Mutex;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio_tungstenite::tungstenite::Error;
-use tokio_tungstenite::tungstenite::Message as TungsteniteMessage;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{connect_async, WebSocketStream};
 
 /// HassClient is a library that is meant to simplify the conversation with HomeAssistant Web Socket Server
 /// it provides a number of convenient functions that creates the requests and read the messages from server
@@ -24,29 +29,78 @@ pub struct HassClient {
     last_sequence: Arc<AtomicU64>,
 
     // holds the Events Subscriptions
-    pub subscriptions: HashMap<u64, String>,
+    pub subscriptions: Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
 
     //Client --> Gateway (send "Commands" msg to the Gateway)
-    pub(crate) to_gateway: Sender<TungsteniteMessage>,
+    pub(crate) to_gateway: Sender<Message>,
 
     //Gateway --> Client (receive "Response" msg from the Gateway)
-    pub(crate) from_gateway: Receiver<Result<TungsteniteMessage, Error>>,
+    pub(crate) from_gateway: Receiver<Result<Message, Error>>,
+}
+
+async fn ws_incoming_messages(
+    mut stream: SplitStream<WebSocketStream<impl AsyncRead + AsyncWrite + Unpin>>,
+    to_user: Sender<Result<Message, Error>>,
+    subscriptions: Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
+) {
+    fn get_tx(
+        subscriptions: &Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
+        id: u64,
+    ) -> Option<Sender<WSEvent>> {
+        subscriptions.lock().get(&id).map(|tx| tx.clone())
+    }
+
+    while let Some(message) = stream.next().await {
+        match check_if_event(message) {
+            Ok(event) => {
+                // Dispatch to subscriber
+                let id = event.id;
+                if let Some(tx) = get_tx(&subscriptions, id) {
+                    if tx.send(event).await.is_err() {
+                        subscriptions.lock().remove(&id);
+                    }
+                }
+            }
+            Err(message) => {
+                if to_user.send(message).await.is_err() {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+async fn ws_outgoing_messages(
+    mut sink: SplitSink<WebSocketStream<impl AsyncRead + AsyncWrite + Unpin>, Message>,
+    mut from_user: Receiver<Message>,
+) {
+    while let Some(msg) = from_user.recv().await {
+        if sink.send(msg).await.is_err() {
+            break;
+        }
+    }
 }
 
 impl HassClient {
-    pub fn new(
-        tx: Sender<TungsteniteMessage>,
-        rx: Receiver<Result<TungsteniteMessage, Error>>,
-    ) -> Self {
-        let last_sequence = Arc::new(AtomicU64::new(1));
-        let subscriptions = HashMap::new();
+    pub async fn new(url: &str) -> HassResult<Self> {
+        let (wsclient, _) = connect_async(url).await?;
+        let (sink, stream) = wsclient.split();
 
-        HassClient {
+        let (to_gateway, from_user) = channel::<Message>(20);
+        let (to_user, from_gateway) = channel::<Result<Message, Error>>(20);
+        let subscriptions = Arc::new(Mutex::new(HashMap::new()));
+
+        tokio::spawn(ws_incoming_messages(stream, to_user, subscriptions.clone()));
+        tokio::spawn(ws_outgoing_messages(sink, from_user));
+
+        let last_sequence = Arc::new(AtomicU64::new(1));
+
+        Ok(Self {
             last_sequence,
             subscriptions,
-            to_gateway: tx,
-            from_gateway: rx,
-        }
+            to_gateway,
+            from_gateway,
+        })
     }
 
     /// authenticate the session using a long-lived access token
@@ -255,7 +309,7 @@ impl HassClient {
     /// For each event that matches, the server will send a message of type event.
     /// The id in the message will point at the original id of the listen_event command.
 
-    pub async fn subscribe_event(&mut self, event_name: &str) -> HassResult<WSResult> {
+    pub async fn subscribe_event(&mut self, event_name: &str) -> HassResult<Receiver<WSEvent>> {
         let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
 
         //create the Event Subscribe Command
@@ -271,39 +325,9 @@ impl HassClient {
         //Add the callback in the event_listeners hashmap if the Subscription Response is successfull
         match response {
             Response::Result(v) if v.success == true => {
-                self.subscriptions.insert(v.id, event_name.to_owned());
-                return Ok(v);
-            }
-            Response::Result(v) if v.success == false => return Err(HassError::ResponseError(v)),
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
-        }
-    }
-
-    ///The command unsubscribe_event will unsubscribe your client from the event bus.
-    ///
-    /// You can unsubscribe from previously created subscription events.
-    /// Pass the id of the original subscription command as value to the subscription field.
-
-    pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<String> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
-
-        //Unsubscribe the Event
-        let unsubscribe_req = Command::Unsubscribe(Unsubscribe {
-            id: Some(id),
-            msg_type: "unsubscribe_events".to_owned(),
-            subscription: subscription_id,
-        });
-
-        //send command to unsubscribe from specific event
-        let response = self.command(unsubscribe_req).await?;
-
-        //Remove the event_type and the callback from the event_listeners hashmap
-        match response {
-            Response::Result(v) if v.success == true => {
-                if let Some(_) = self.subscriptions.remove(&subscription_id) {
-                    return Ok("Ok".to_owned());
-                }
-                return Err(HassError::Generic("Wrong subscription ID".to_owned()));
+                let (tx, rx) = channel(20);
+                self.subscriptions.lock().insert(v.id, tx);
+                return Ok(rx);
             }
             Response::Result(v) if v.success == false => return Err(HassError::ResponseError(v)),
             unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
@@ -312,7 +336,7 @@ impl HassClient {
 
     //used to send commands and receive responses from the gateway
     pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
-        //transform to TungsteniteMessage to be sent to WebSocket
+        //transform to Message to be sent to WebSocket
         let cmd_tungstenite = cmd.to_tungstenite_message();
 
         // Send the auth command to gateway
@@ -328,7 +352,7 @@ impl HassClient {
     pub(crate) async fn ws_receive(&mut self) -> HassResult<Response> {
         match self.from_gateway.recv().await {
             Some(Ok(item)) => match item {
-                TungsteniteMessage::Text(data) => {
+                Message::Text(data) => {
                     //Serde: The tag identifying which variant we are dealing with is now inside of the content,
                     // next to any other fields of the variant
 
@@ -348,11 +372,9 @@ impl HassClient {
 
 /// convenient function that validates if the message received is an Event
 /// the Events should be processed by used in a separate async task
-pub fn check_if_event(
-    result: Result<TungsteniteMessage, Error>,
-) -> Result<WSEvent, Result<TungsteniteMessage, Error>> {
+fn check_if_event(result: Result<Message, Error>) -> Result<WSEvent, Result<Message, Error>> {
     match result {
-        Ok(TungsteniteMessage::Text(data)) => {
+        Ok(Message::Text(data)) => {
             //Serde: The tag identifying which variant we are dealing with is now inside of the content,
             // next to any other fields of the variant
 
@@ -362,7 +384,7 @@ pub fn check_if_event(
             if let Ok(Response::Event(event)) = payload {
                 Ok(event)
             } else {
-                Err(Ok(TungsteniteMessage::Text(data)))
+                Err(Ok(Message::Text(data)))
             }
         }
         result => Err(result),

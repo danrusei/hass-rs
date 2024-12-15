@@ -13,5 +13,3 @@ pub use types::*;
 
 pub mod client;
 pub use client::HassClient;
-
-pub use tokio::sync::mpsc::{Receiver, Sender};

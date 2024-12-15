@@ -8,6 +8,7 @@ pub(crate) enum Command {
     AuthInit(Auth),
     Ping(Ask),
     SubscribeEvent(Subscribe),
+    #[allow(unused)]
     Unsubscribe(Unsubscribe),
     GetConfig(Ask),
     GetServices(Ask),
