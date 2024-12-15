@@ -22,7 +22,7 @@ use tokio_tungstenite::{connect_async, WebSocketStream};
 /// it provides a number of convenient functions that creates the requests and read the messages from server
 pub struct HassClient {
     // holds the id of the WS message
-    last_sequence: Arc<AtomicU64>,
+    last_sequence: AtomicU64,
 
     // holds the Events Subscriptions
     subscriptions: Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
@@ -76,7 +76,7 @@ impl HassClient {
 
         tokio::spawn(ws_incoming_messages(stream, to_user, subscriptions.clone()));
 
-        let last_sequence = Arc::new(AtomicU64::new(1));
+        let last_sequence = AtomicU64::new(1);
 
         Ok(Self {
             last_sequence,
@@ -123,7 +123,7 @@ impl HassClient {
     /// This serves as a heartbeat to ensure the connection is still alive.
 
     pub async fn ping(&mut self) -> HassResult<String> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+        let id = self.get_last_seq();
 
         //Send Ping command and expect Pong
         let ping_req = Command::Ping(Ask {
@@ -146,7 +146,7 @@ impl HassClient {
     /// The server will respond with a result message containing the config.
 
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+        let id = self.get_last_seq();
 
         //Send GetConfig command and expect Pong
         let config_req = Command::GetConfig(Ask {
@@ -174,7 +174,7 @@ impl HassClient {
     /// The server will respond with a result message containing the states.
 
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+        let id = self.get_last_seq();
 
         //Send GetStates command and expect a number of Entities
         let states_req = Command::GetStates(Ask {
@@ -201,7 +201,7 @@ impl HassClient {
     /// The server will respond with a result message containing the services.
 
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+        let id = self.get_last_seq();
         //Send GetStates command and expect a number of Entities
         let services_req = Command::GetServices(Ask {
             id: Some(id),
@@ -228,7 +228,7 @@ impl HassClient {
     /// The server will respond with a result message containing the current registered panels.
 
     pub async fn get_panels(&mut self) -> HassResult<HassPanels> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+        let id = self.get_last_seq();
 
         //Send GetStates command and expect a number of Entities
         let services_req = Command::GetPanels(Ask {
@@ -263,7 +263,7 @@ impl HassClient {
         service: String,
         service_data: Option<Value>,
     ) -> HassResult<String> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+        let id = self.get_last_seq();
 
         //Send GetStates command and expect a number of Entities
         let services_req = Command::CallService(CallService {
@@ -293,7 +293,7 @@ impl HassClient {
     /// The id in the message will point at the original id of the listen_event command.
 
     pub async fn subscribe_event(&mut self, event_name: &str) -> HassResult<Receiver<WSEvent>> {
-        let id = get_last_seq(&self.last_sequence).expect("could not read the Atomic value");
+        let id = self.get_last_seq();
 
         //create the Event Subscribe Command
         let cmd = Command::SubscribeEvent(Subscribe {
@@ -351,6 +351,12 @@ impl HassClient {
             None => Err(HassError::ConnectionClosed),
         }
     }
+
+    // message sequence required by the Websocket server
+    fn get_last_seq(&self) -> u64 {
+        // Increase the last sequence and use the previous value in the request
+        self.last_sequence.fetch_add(1, Ordering::Relaxed)
+    }
 }
 
 /// convenient function that validates if the message received is an Event
@@ -368,14 +374,5 @@ fn check_if_event(result: Result<Message, Error>) -> Result<WSEvent, Result<Mess
             }
         }
         result => Err(result),
-    }
-}
-
-// message sequence required by the Websocket server
-fn get_last_seq(last_sequence: &Arc<AtomicU64>) -> Option<u64> {
-    // Increase the last sequence and use the previous value in the request
-    match last_sequence.fetch_add(1, Ordering::Relaxed) {
-        0 => None,
-        v => Some(v),
     }
 }
