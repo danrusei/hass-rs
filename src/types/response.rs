@@ -1,4 +1,5 @@
 use crate::types::HassEvent;
+use crate::HassResult;
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -84,9 +85,32 @@ pub struct WSResult {
     pub id: u64,
     // #[serde(rename = "type")]
     // pub msg_type: String,
-    pub success: bool,
-    pub result: Option<Value>,
-    pub error: Option<ErrorCode>,
+    success: bool,
+    result: Option<Value>,
+    error: Option<ErrorCode>,
+}
+
+impl WSResult {
+    pub fn is_ok(&self) -> bool {
+        self.success
+    }
+
+    pub fn is_err(&self) -> bool {
+        !self.success
+    }
+
+    pub fn result(self) -> HassResult<Value> {
+        if self.success {
+            if let Some(result) = self.result {
+                return Ok(result);
+            }
+        }
+        Err(crate::HassError::ResponseError(self))
+    }
+
+    pub fn unwrap_err(self) -> ErrorCode {
+        self.error.unwrap()
+    }
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

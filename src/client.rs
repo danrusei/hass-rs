@@ -151,16 +151,12 @@ impl HassClient {
         let response = self.command(config_req).await?;
 
         match response {
-            Response::Result(data) => match data.success {
-                true => {
-                    let config: HassConfig = serde_json::from_value(
-                        data.result.expect("Expecting to get the HassConfig"),
-                    )?;
-                    return Ok(config);
-                }
-                false => return Err(HassError::ResponseError(data)),
-            },
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::Result(data) => {
+                let value = data.result()?;
+                let config: HassConfig = serde_json::from_value(value)?;
+                Ok(config)
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -178,15 +174,12 @@ impl HassClient {
         let response = self.command(states_req).await?;
 
         match response {
-            Response::Result(data) => match data.success {
-                true => {
-                    let states: Vec<HassEntity> =
-                        serde_json::from_value(data.result.expect("Expecting to get the States"))?;
-                    return Ok(states);
-                }
-                false => return Err(HassError::ResponseError(data)),
-            },
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::Result(data) => {
+                let value = data.result()?;
+                let states: Vec<HassEntity> = serde_json::from_value(value)?;
+                Ok(states)
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -203,16 +196,12 @@ impl HassClient {
         let response = self.command(services_req).await?;
 
         match response {
-            Response::Result(data) => match data.success {
-                true => {
-                    let services: HassServices = serde_json::from_value(
-                        data.result.expect("Expecting to get the Services"),
-                    )?;
-                    return Ok(services);
-                }
-                false => return Err(HassError::ResponseError(data)),
-            },
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::Result(data) => {
+                let value = data.result()?;
+                let services: HassServices = serde_json::from_value(value)?;
+                Ok(services)
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -230,15 +219,12 @@ impl HassClient {
         let response = self.command(services_req).await?;
 
         match response {
-            Response::Result(data) => match data.success {
-                true => {
-                    let services: HassPanels =
-                        serde_json::from_value(data.result.expect("Expecting panels"))?;
-                    return Ok(services);
-                }
-                false => return Err(HassError::ResponseError(data)),
-            },
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::Result(data) => {
+                let value = data.result()?;
+                let services: HassPanels = serde_json::from_value(value)?;
+                Ok(services)
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -254,7 +240,7 @@ impl HassClient {
         domain: String,
         service: String,
         service_data: Option<Value>,
-    ) -> HassResult<String> {
+    ) -> HassResult<()> {
         let id = self.get_last_seq();
 
         let services_req = Command::CallService(CallService {
@@ -267,11 +253,11 @@ impl HassClient {
         let response = self.command(services_req).await?;
 
         match response {
-            Response::Result(data) => match data.success {
-                true => return Ok("command executed successfully".to_owned()),
-                false => return Err(HassError::ResponseError(data)),
-            },
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::Result(data) => {
+                data.result()?;
+                Ok(())
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -290,12 +276,12 @@ impl HassClient {
         let response = self.command(cmd).await?;
 
         match response {
-            Response::Result(v) if v.success == true => {
+            Response::Result(v) if v.is_ok() => {
                 let (tx, rx) = channel(20);
                 self.subscriptions.lock().insert(v.id, tx);
                 return Ok(rx);
             }
-            Response::Result(v) if v.success == false => return Err(HassError::ResponseError(v)),
+            Response::Result(v) => return Err(HassError::ResponseError(v)),
             unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
