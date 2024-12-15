@@ -6,36 +6,32 @@ use crate::types::{
 };
 use crate::{HassError, HassResult};
 
-use futures_util::{
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
-};
+use futures_util::{stream::SplitStream, Sink, SinkExt, StreamExt};
 use parking_lot::Mutex;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tokio_tungstenite::tungstenite::Error;
-use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::{connect_async, WebSocketStream};
 
 /// HassClient is a library that is meant to simplify the conversation with HomeAssistant Web Socket Server
 /// it provides a number of convenient functions that creates the requests and read the messages from server
-#[derive(Debug)]
 pub struct HassClient {
     // holds the id of the WS message
     last_sequence: Arc<AtomicU64>,
 
     // holds the Events Subscriptions
-    pub subscriptions: Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
+    subscriptions: Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
 
-    //Client --> Gateway (send "Commands" msg to the Gateway)
-    pub(crate) to_gateway: Sender<Message>,
+    /// Client --> Gateway (send "Commands" msg to the Gateway)
+    message_tx: Pin<Box<dyn Sink<Message, Error = Error> + Send + Sync>>,
 
-    //Gateway --> Client (receive "Response" msg from the Gateway)
-    pub(crate) from_gateway: Receiver<Result<Message, Error>>,
+    /// Gateway --> Client (receive "Response" msg from the Gateway)
+    from_gateway: Receiver<Result<Message, Error>>,
 }
 
 async fn ws_incoming_messages(
@@ -70,35 +66,22 @@ async fn ws_incoming_messages(
     }
 }
 
-async fn ws_outgoing_messages(
-    mut sink: SplitSink<WebSocketStream<impl AsyncRead + AsyncWrite + Unpin>, Message>,
-    mut from_user: Receiver<Message>,
-) {
-    while let Some(msg) = from_user.recv().await {
-        if sink.send(msg).await.is_err() {
-            break;
-        }
-    }
-}
-
 impl HassClient {
     pub async fn new(url: &str) -> HassResult<Self> {
         let (wsclient, _) = connect_async(url).await?;
-        let (sink, stream) = wsclient.split();
+        let (message_tx, stream) = wsclient.split();
 
-        let (to_gateway, from_user) = channel::<Message>(20);
-        let (to_user, from_gateway) = channel::<Result<Message, Error>>(20);
+        let (to_user, from_gateway) = channel(20);
         let subscriptions = Arc::new(Mutex::new(HashMap::new()));
 
         tokio::spawn(ws_incoming_messages(stream, to_user, subscriptions.clone()));
-        tokio::spawn(ws_outgoing_messages(sink, from_user));
 
         let last_sequence = Arc::new(AtomicU64::new(1));
 
         Ok(Self {
             last_sequence,
             subscriptions,
-            to_gateway,
+            message_tx: Box::pin(message_tx),
             from_gateway,
         })
     }
@@ -340,7 +323,7 @@ impl HassClient {
         let cmd_tungstenite = cmd.to_tungstenite_message();
 
         // Send the auth command to gateway
-        self.to_gateway
+        self.message_tx
             .send(cmd_tungstenite)
             .await
             .map_err(|err| HassError::SendError(err.to_string()))?;
@@ -375,9 +358,6 @@ impl HassClient {
 fn check_if_event(result: Result<Message, Error>) -> Result<WSEvent, Result<Message, Error>> {
     match result {
         Ok(Message::Text(data)) => {
-            //Serde: The tag identifying which variant we are dealing with is now inside of the content,
-            // next to any other fields of the variant
-
             let payload: Result<Response, HassError> =
                 serde_json::from_str(data.as_str()).map_err(|err| HassError::from(err));
 
