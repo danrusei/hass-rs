@@ -120,7 +120,7 @@ impl HassClient {
 
     /// The API supports receiving a ping from the client and returning a pong.
     /// This serves as a heartbeat to ensure the connection is still alive.
-    pub async fn ping(&mut self) -> HassResult<String> {
+    pub async fn ping(&mut self) -> HassResult<()> {
         let id = self.get_last_seq();
 
         let ping_req = Command::Ping(Ask {
@@ -130,9 +130,8 @@ impl HassClient {
 
         let response = self.command(ping_req).await?;
 
-        // Check the response, if the Pong was received
         match response {
-            Response::Pong(_v) => Ok("pong".to_owned()),
+            Response::Pong(_v) => Ok(()),
             Response::Result(err) => return Err(HassError::ResponseError(err)),
             unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
         }
