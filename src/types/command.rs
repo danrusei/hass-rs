@@ -1,6 +1,6 @@
-use async_tungstenite::tungstenite::Message as TungsteniteMessage;
 use serde::Serialize;
 use serde_json::Value;
+use tokio_tungstenite::tungstenite::Message as TungsteniteMessage;
 
 /// This enum defines the type of commands that the client is allowed to send to the Websocket server
 #[derive(Debug)]
@@ -25,39 +25,39 @@ impl Command {
         match self {
             Self::AuthInit(auth) => {
                 let cmd_str = serde_json::to_string(&auth).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::Ping(ping) => {
                 let cmd_str = serde_json::to_string(&ping).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::SubscribeEvent(subscribe) => {
                 let cmd_str = serde_json::to_string(&subscribe).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::Unsubscribe(unsubscribe) => {
                 let cmd_str = serde_json::to_string(&unsubscribe).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::GetConfig(getconfig) => {
                 let cmd_str = serde_json::to_string(&getconfig).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::GetStates(getstates) => {
                 let cmd_str = serde_json::to_string(&getstates).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::GetServices(getservices) => {
                 let cmd_str = serde_json::to_string(&getservices).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::GetPanels(getpanels) => {
                 let cmd_str = serde_json::to_string(&getpanels).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::CallService(callservice) => {
                 let cmd_str = serde_json::to_string(&callservice).unwrap();
-                TungsteniteMessage::Text(cmd_str)
+                TungsteniteMessage::text(cmd_str)
             }
             Self::Close => todo!(),
         }

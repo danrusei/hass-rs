@@ -1,11 +1,8 @@
 //! Convenient error handling
 
 use crate::types::WSResult;
-use async_tungstenite::tungstenite;
-
-#[cfg(feature = "use-async-std")]
-use async_std::channel::RecvError;
 use std::fmt;
+use tokio_tungstenite::tungstenite;
 
 pub type HassResult<T> = std::result::Result<T, HassError>;
 
@@ -23,9 +20,6 @@ pub enum HassError {
 
     /// Mpsc channel SendError<T> message
     SendError(String),
-
-    #[cfg(feature = "use-async-std")]
-    RecvError(RecvError),
 
     /// Tungstenite error
     TungsteniteError(tungstenite::error::Error),
@@ -56,8 +50,6 @@ impl fmt::Display for HassError {
                 write!(f, "Unable to deserialize the received value: {}", e)
             }
             Self::TungsteniteError(e) => write!(f, "Tungstenite Error: {}", e),
-            #[cfg(feature = "use-async-std")]
-            Self::RecvError(e) => write!(f, "Receiver Error: {}", e),
             //Self::TokioTungsteniteError(e) => write!(f, "Tokio Tungstenite Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
             Self::ReponseError(e) => match &e.error {
@@ -70,13 +62,6 @@ impl fmt::Display for HassError {
             },
             Self::Generic(detail) => write!(f, "Generic Error: {}", detail),
         }
-    }
-}
-
-#[cfg(feature = "use-async-std")]
-impl From<RecvError> for HassError {
-    fn from(error: RecvError) -> Self {
-        HassError::RecvError(error)
     }
 }
 

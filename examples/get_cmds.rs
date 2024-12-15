@@ -1,4 +1,3 @@
-use async_tungstenite::tungstenite::{Error, Message};
 use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
@@ -8,6 +7,7 @@ use lazy_static::lazy_static;
 use std::env::var;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
+use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::{connect_async, WebSocketStream};
 
 lazy_static! {

@@ -14,5 +14,4 @@ pub use types::*;
 pub mod client;
 pub use client::HassClient;
 
-mod runtime;
-use runtime::{Receiver, Sender};
+pub use tokio::sync::mpsc::{Receiver, Sender};

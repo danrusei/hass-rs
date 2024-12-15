@@ -11,6 +11,7 @@ pub(crate) enum Response {
     //request to autheticate
     AuthRequired(AuthRequired),
     //authetication suceeded
+    #[allow(unused)]
     AuthOk(AuthOk),
     //authetication failed
     AuthInvalid(AuthInvalid),
@@ -21,6 +22,7 @@ pub(crate) enum Response {
     //received when subscribed to event
     Event(WSEvent),
     //when the server close the websocket connection
+    #[allow(unused)]
     Close(String),
 }
 
