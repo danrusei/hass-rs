@@ -60,12 +60,14 @@ impl fmt::Display for HassError {
             Self::RecvError(e) => write!(f, "Receiver Error: {}", e),
             //Self::TokioTungsteniteError(e) => write!(f, "Tokio Tungstenite Error: {}", e),
             Self::UnknownPayloadReceived => write!(f, "The received payload is unknown"),
-            Self::ReponseError(e) => write!(
-                f,
-                "The error code:{} with the error message: {}",
-                e.error.as_ref().unwrap().code,
-                e.error.as_ref().unwrap().message
-            ),
+            Self::ReponseError(e) => match &e.error {
+                Some(e) => write!(
+                    f,
+                    "The error code:{} with the error message: {}",
+                    e.code, e.message
+                ),
+                None => write!(f, "ResponseError({e:?})"),
+            },
             Self::Generic(detail) => write!(f, "Generic Error: {}", detail),
         }
     }

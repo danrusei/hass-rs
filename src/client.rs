@@ -266,7 +266,7 @@ impl HassClient {
         });
 
         //send command to subscribe to specific event
-        let response = self.command(cmd).await.unwrap();
+        let response = self.command(cmd).await?;
 
         //Add the callback in the event_listeners hashmap if the Subscription Response is successfull
         match response {
@@ -295,7 +295,7 @@ impl HassClient {
         });
 
         //send command to unsubscribe from specific event
-        let response = self.command(unsubscribe_req).await.unwrap();
+        let response = self.command(unsubscribe_req).await?;
 
         //Remove the event_type and the callback from the event_listeners hashmap
         match response {
