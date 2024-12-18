@@ -27,13 +27,22 @@ pub enum Response {
     Close(String),
 }
 
+impl Response {
+    pub fn id(&self) -> Option<u64> {
+        match self {
+            Self::AuthRequired(_) | Self::AuthOk(_) | Self::AuthInvalid(_) | Self::Close(_) => None,
+            Self::Pong(pong) => Some(pong.id),
+            Self::Result(result) => Some(result.id),
+            Self::Event(event) => Some(event.id),
+        }
+    }
+}
+
 // this is the first message received from websocket,
 // that ask to provide a authetication method
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub struct AuthRequired {
-    #[serde(rename = "type")]
-    pub msg_type: String,
     pub ha_version: String,
 }
 
@@ -41,8 +50,6 @@ pub struct AuthRequired {
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub struct AuthOk {
-    //  #[serde(rename = "type")]
-    //  pub msg_type: String,
     pub ha_version: String,
 }
 
@@ -50,8 +57,6 @@ pub struct AuthOk {
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub struct AuthInvalid {
-    // #[serde(rename = "type")]
-    // pub msg_type: String,
     pub message: String,
 }
 
@@ -59,8 +64,6 @@ pub struct AuthInvalid {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSPong {
     pub id: u64,
-    // #[serde(rename = "type")]
-    // pub msg_type: String,
 }
 
 ///	This object represents the Home Assistant Event
@@ -70,9 +73,6 @@ pub struct WSPong {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct WSEvent {
     pub id: u64,
-    // r#type: String,
-    // #[serde(rename = "type")]
-    // pub msg_type: String,
     pub event: HassEvent,
 }
 
@@ -83,8 +83,6 @@ pub struct WSEvent {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSResult {
     pub id: u64,
-    // #[serde(rename = "type")]
-    // pub msg_type: String,
     success: bool,
     result: Option<Value>,
     error: Option<ErrorCode>,

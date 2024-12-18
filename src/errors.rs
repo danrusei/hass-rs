@@ -26,6 +26,9 @@ pub enum HassError {
     #[error("Unable to send the message on channel: {0}")]
     SendError(String),
 
+    #[error("Unable to receive a message on channel: {0}")]
+    RecvError(String),
+
     /// Tungstenite error
     #[error("Tungstenite error: {0}")]
     TungsteniteError(#[from] tungstenite::error::Error),

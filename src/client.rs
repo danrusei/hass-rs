@@ -15,6 +15,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::oneshot::{channel as oneshot, Sender as OneShotSender};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::{connect_async, WebSocketStream};
 
@@ -24,44 +25,90 @@ pub struct HassClient {
     // holds the id of the WS message
     last_sequence: AtomicU64,
 
-    // holds the Events Subscriptions
-    subscriptions: Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
+    rx_state: Arc<ReceiverState>,
 
     /// Client --> Gateway (send "Commands" msg to the Gateway)
     message_tx: Pin<Box<dyn Sink<Message, Error = Error> + Send + Sync>>,
+}
 
-    /// Gateway --> Client (receive "Response" msg from the Gateway)
-    from_gateway: Receiver<Result<Message, Error>>,
+#[derive(Default)]
+struct ReceiverState {
+    subscriptions: Mutex<HashMap<u64, Sender<WSEvent>>>,
+    pending_requests: Mutex<HashMap<u64, OneShotSender<Response>>>,
+    untagged_request: Mutex<Option<OneShotSender<Response>>>,
+}
+
+impl ReceiverState {
+    fn get_tx(self: &Arc<Self>, id: u64) -> Option<Sender<WSEvent>> {
+        self.subscriptions.lock().get(&id).map(|tx| tx.clone())
+    }
+
+    fn rm_subscription(self: &Arc<Self>, id: u64) {
+        self.subscriptions.lock().remove(&id);
+    }
+
+    fn take_responder(self: &Arc<Self>, id: u64) -> Option<OneShotSender<Response>> {
+        self.pending_requests.lock().remove(&id)
+    }
+
+    fn take_untagged(self: &Arc<Self>) -> Option<OneShotSender<Response>> {
+        self.untagged_request.lock().take()
+    }
 }
 
 async fn ws_incoming_messages(
     mut stream: SplitStream<WebSocketStream<impl AsyncRead + AsyncWrite + Unpin>>,
-    to_user: Sender<Result<Message, Error>>,
-    subscriptions: Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
+    rx_state: Arc<ReceiverState>,
 ) {
-    fn get_tx(
-        subscriptions: &Arc<Mutex<HashMap<u64, Sender<WSEvent>>>>,
-        id: u64,
-    ) -> Option<Sender<WSEvent>> {
-        subscriptions.lock().get(&id).map(|tx| tx.clone())
-    }
-
     while let Some(message) = stream.next().await {
+        log::trace!("incoming: {message:#?}");
         match check_if_event(message) {
             Ok(event) => {
                 // Dispatch to subscriber
                 let id = event.id;
-                if let Some(tx) = get_tx(&subscriptions, id) {
+                if let Some(tx) = rx_state.get_tx(id) {
                     if tx.send(event).await.is_err() {
-                        subscriptions.lock().remove(&id);
+                        rx_state.rm_subscription(id);
                     }
                 }
             }
-            Err(message) => {
-                if to_user.send(message).await.is_err() {
-                    break;
+            Err(message) => match message {
+                Ok(Message::Text(data)) => {
+                    let payload: Result<Response, HassError> = serde_json::from_str(data.as_str())
+                        .map_err(|err| HassError::UnableToDeserialize(err));
+
+                    match payload {
+                        Ok(response) => match response.id() {
+                            Some(id) => {
+                                if let Some(tx) = rx_state.take_responder(id) {
+                                    tx.send(response).ok();
+                                } else {
+                                    log::error!("no responder for id={id} {response:#?}");
+                                }
+                            }
+                            None => {
+                                if matches!(&response, Response::AuthRequired(_)) {
+                                    // AuthRequired is always sent unilaterally at connect time.
+                                    // It is never a response to one of our commands, so the
+                                    // simplest way to deal with it is to ignore it.
+                                    log::trace!("Ignoring {response:?}");
+                                    continue;
+                                }
+
+                                if let Some(tx) = rx_state.take_untagged() {
+                                    tx.send(response).ok();
+                                } else {
+                                    log::error!("no untagged responder for {response:#?}");
+                                }
+                            }
+                        },
+                        Err(err) => {
+                            log::error!("Error deserializing response: {err:#} {data}");
+                        }
+                    }
                 }
-            }
+                unexpected => log::error!("Unexpected message: {unexpected:#?}"),
+            },
         }
     }
 }
@@ -71,18 +118,16 @@ impl HassClient {
         let (wsclient, _) = connect_async(url).await?;
         let (message_tx, stream) = wsclient.split();
 
-        let (to_user, from_gateway) = channel(20);
-        let subscriptions = Arc::new(Mutex::new(HashMap::new()));
+        let rx_state = Arc::new(ReceiverState::default());
 
-        tokio::spawn(ws_incoming_messages(stream, to_user, subscriptions.clone()));
+        tokio::spawn(ws_incoming_messages(stream, rx_state.clone()));
 
         let last_sequence = AtomicU64::new(1);
 
         Ok(Self {
             last_sequence,
-            subscriptions,
+            rx_state,
             message_tx: Box::pin(message_tx),
-            from_gateway,
         })
     }
 
@@ -94,46 +139,37 @@ impl HassClient {
     /// If the data is incorrect, the server will reply with auth_invalid message and disconnect the session.
 
     pub async fn auth_with_longlivedtoken(&mut self, token: &str) -> HassResult<()> {
-        // Auth Request from Gateway { "type": "auth_required"}
-        if let Ok(Response::AuthRequired(msg)) = self.ws_receive().await {
-            if msg.msg_type != "auth_required".to_string() {
-                return Err(HassError::Generic(
-                    "Expecting the first message from server to be auth_required".to_string(),
-                ));
-            }
-        }
-
         let auth_message = Command::AuthInit(Auth {
             msg_type: "auth".to_owned(),
             access_token: token.to_owned(),
         });
 
-        let response = self.command(auth_message).await?;
+        let response = self.command(auth_message, None).await?;
 
         // Check if the authetication was succefully, should receive {"type": "auth_ok"}
         match response {
             Response::AuthOk(_) => Ok(()),
-            Response::AuthInvalid(err) => return Err(HassError::AuthenticationFailed(err.message)),
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::AuthInvalid(err) => Err(HassError::AuthenticationFailed(err.message)),
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
     /// The API supports receiving a ping from the client and returning a pong.
     /// This serves as a heartbeat to ensure the connection is still alive.
     pub async fn ping(&mut self) -> HassResult<()> {
-        let id = self.get_last_seq();
+        let id = self.next_seq();
 
         let ping_req = Command::Ping(Ask {
-            id: Some(id),
+            id,
             msg_type: "ping".to_owned(),
         });
 
-        let response = self.command(ping_req).await?;
+        let response = self.command(ping_req, Some(id)).await?;
 
         match response {
             Response::Pong(_v) => Ok(()),
-            Response::Result(err) => return Err(HassError::ResponseError(err)),
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::Result(err) => Err(HassError::ResponseError(err)),
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
@@ -141,13 +177,13 @@ impl HassClient {
     ///
     /// The server will respond with a result message containing the config.
     pub async fn get_config(&mut self) -> HassResult<HassConfig> {
-        let id = self.get_last_seq();
+        let id = self.next_seq();
 
         let config_req = Command::GetConfig(Ask {
-            id: Some(id),
+            id,
             msg_type: "get_config".to_owned(),
         });
-        let response = self.command(config_req).await?;
+        let response = self.command(config_req, Some(id)).await?;
 
         match response {
             Response::Result(data) => {
@@ -164,13 +200,13 @@ impl HassClient {
     /// The server will respond with a result message containing the states.
 
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
-        let id = self.get_last_seq();
+        let id = self.next_seq();
 
         let states_req = Command::GetStates(Ask {
-            id: Some(id),
+            id,
             msg_type: "get_states".to_owned(),
         });
-        let response = self.command(states_req).await?;
+        let response = self.command(states_req, Some(id)).await?;
 
         match response {
             Response::Result(data) => {
@@ -187,12 +223,12 @@ impl HassClient {
     /// The server will respond with a result message containing the services.
 
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
-        let id = self.get_last_seq();
+        let id = self.next_seq();
         let services_req = Command::GetServices(Ask {
-            id: Some(id),
+            id,
             msg_type: "get_services".to_owned(),
         });
-        let response = self.command(services_req).await?;
+        let response = self.command(services_req, Some(id)).await?;
 
         match response {
             Response::Result(data) => {
@@ -209,13 +245,13 @@ impl HassClient {
     /// The server will respond with a result message containing the current registered panels.
 
     pub async fn get_panels(&mut self) -> HassResult<HassPanels> {
-        let id = self.get_last_seq();
+        let id = self.next_seq();
 
         let services_req = Command::GetPanels(Ask {
-            id: Some(id),
+            id,
             msg_type: "get_panels".to_owned(),
         });
-        let response = self.command(services_req).await?;
+        let response = self.command(services_req, Some(id)).await?;
 
         match response {
             Response::Result(data) => {
@@ -240,16 +276,16 @@ impl HassClient {
         service: String,
         service_data: Option<Value>,
     ) -> HassResult<()> {
-        let id = self.get_last_seq();
+        let id = self.next_seq();
 
         let services_req = Command::CallService(CallService {
-            id: Some(id),
+            id,
             msg_type: "call_service".to_owned(),
             domain,
             service,
             service_data,
         });
-        let response = self.command(services_req).await?;
+        let response = self.command(services_req, Some(id)).await?;
 
         match response {
             Response::Result(data) => {
@@ -264,30 +300,41 @@ impl HassClient {
     ///
     /// Returns a channel that will receive the subscription messages.
     pub async fn subscribe_event(&mut self, event_name: &str) -> HassResult<Receiver<WSEvent>> {
-        let id = self.get_last_seq();
+        let id = self.next_seq();
 
         let cmd = Command::SubscribeEvent(Subscribe {
-            id: Some(id),
+            id,
             msg_type: "subscribe_events".to_owned(),
             event_type: event_name.to_owned(),
         });
 
-        let response = self.command(cmd).await?;
+        let response = self.command(cmd, Some(id)).await?;
 
         match response {
             Response::Result(v) if v.is_ok() => {
                 let (tx, rx) = channel(20);
-                self.subscriptions.lock().insert(v.id, tx);
+                self.rx_state.subscriptions.lock().insert(v.id, tx);
                 return Ok(rx);
             }
-            Response::Result(v) => return Err(HassError::ResponseError(v)),
-            unknown => return Err(HassError::UnknownPayloadReceived(unknown)),
+            Response::Result(v) => Err(HassError::ResponseError(v)),
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
 
     /// send commands and receive responses from the gateway
-    pub(crate) async fn command(&mut self, cmd: Command) -> HassResult<Response> {
+    pub(crate) async fn command(&mut self, cmd: Command, id: Option<u64>) -> HassResult<Response> {
         let cmd_tungstenite = cmd.to_tungstenite_message();
+
+        let (tx, rx) = oneshot();
+
+        match id {
+            Some(id) => {
+                self.rx_state.pending_requests.lock().insert(id, tx);
+            }
+            None => {
+                self.rx_state.untagged_request.lock().replace(tx);
+            }
+        }
 
         // Send the auth command to gateway
         self.message_tx
@@ -295,29 +342,12 @@ impl HassClient {
             .await
             .map_err(|err| HassError::SendError(err.to_string()))?;
 
-        self.ws_receive().await
-    }
-
-    /// read the messages from the Websocket connection
-    pub(crate) async fn ws_receive(&mut self) -> HassResult<Response> {
-        match self.from_gateway.recv().await {
-            Some(Ok(item)) => match item {
-                Message::Text(data) => {
-                    let payload: Result<Response, HassError> = serde_json::from_str(data.as_str())
-                        .map_err(|err| HassError::UnableToDeserialize(err));
-
-                    payload
-                }
-                msg => Err(HassError::UnexpectedMessage(msg)),
-            },
-            Some(Err(error)) => Err(HassError::from(error)),
-
-            None => Err(HassError::ConnectionClosed),
-        }
+        rx.await
+            .map_err(|err| HassError::RecvError(err.to_string()))
     }
 
     /// get message sequence required by the Websocket server
-    fn get_last_seq(&self) -> u64 {
+    fn next_seq(&self) -> u64 {
         self.last_sequence.fetch_add(1, Ordering::Relaxed)
     }
 }
