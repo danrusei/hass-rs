@@ -6,11 +6,10 @@ use crate::types::{
 };
 use crate::{HassError, HassResult};
 
-use futures_util::{stream::SplitStream, Sink, SinkExt, StreamExt};
+use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use parking_lot::Mutex;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -28,7 +27,7 @@ pub struct HassClient {
     rx_state: Arc<ReceiverState>,
 
     /// Client --> Gateway (send "Commands" msg to the Gateway)
-    message_tx: Pin<Box<dyn Sink<Message, Error = Error> + Send + Sync>>,
+    message_tx: Arc<Sender<Message>>,
 }
 
 #[derive(Default)]
@@ -59,6 +58,7 @@ impl ReceiverState {
 async fn ws_incoming_messages(
     mut stream: SplitStream<WebSocketStream<impl AsyncRead + AsyncWrite + Unpin>>,
     rx_state: Arc<ReceiverState>,
+    message_tx: Arc<Sender<Message>>,
 ) {
     while let Some(message) = stream.next().await {
         log::trace!("incoming: {message:#?}");
@@ -69,6 +69,7 @@ async fn ws_incoming_messages(
                 if let Some(tx) = rx_state.get_tx(id) {
                     if tx.send(event).await.is_err() {
                         rx_state.rm_subscription(id);
+                        // TODO: send unsub request here
                     }
                 }
             }
@@ -107,6 +108,12 @@ async fn ws_incoming_messages(
                         }
                     }
                 }
+                Ok(Message::Ping(data)) => {
+                    if let Err(err) = message_tx.send(Message::Pong(data)).await {
+                        log::error!("Error responding to ping: {err:#}");
+                        break;
+                    }
+                }
                 unexpected => log::error!("Unexpected message: {unexpected:#?}"),
             },
         }
@@ -116,18 +123,33 @@ async fn ws_incoming_messages(
 impl HassClient {
     pub async fn new(url: &str) -> HassResult<Self> {
         let (wsclient, _) = connect_async(url).await?;
-        let (message_tx, stream) = wsclient.split();
+        let (mut sink, stream) = wsclient.split();
+        let (message_tx, mut message_rx) = channel(20);
+
+        let message_tx = Arc::new(message_tx);
 
         let rx_state = Arc::new(ReceiverState::default());
 
-        tokio::spawn(ws_incoming_messages(stream, rx_state.clone()));
+        tokio::spawn(async move {
+            while let Some(msg) = message_rx.recv().await {
+                if let Err(err) = sink.send(msg).await {
+                    log::error!("sink error: {err:#}");
+                    break;
+                }
+            }
+        });
+        tokio::spawn(ws_incoming_messages(
+            stream,
+            rx_state.clone(),
+            message_tx.clone(),
+        ));
 
         let last_sequence = AtomicU64::new(1);
 
         Ok(Self {
             last_sequence,
             rx_state,
-            message_tx: Box::pin(message_tx),
+            message_tx,
         })
     }
 
