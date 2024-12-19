@@ -1,4 +1,5 @@
 use crate::types::HassEvent;
+use crate::HassResult;
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -7,10 +8,11 @@ use serde_json::Value;
 /// next to any other fields of the variant.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub(crate) enum Response {
+pub enum Response {
     //request to autheticate
     AuthRequired(AuthRequired),
     //authetication suceeded
+    #[allow(unused)]
     AuthOk(AuthOk),
     //authetication failed
     AuthInvalid(AuthInvalid),
@@ -21,43 +23,47 @@ pub(crate) enum Response {
     //received when subscribed to event
     Event(WSEvent),
     //when the server close the websocket connection
+    #[allow(unused)]
     Close(String),
+}
+
+impl Response {
+    pub fn id(&self) -> Option<u64> {
+        match self {
+            Self::AuthRequired(_) | Self::AuthOk(_) | Self::AuthInvalid(_) | Self::Close(_) => None,
+            Self::Pong(pong) => Some(pong.id),
+            Self::Result(result) => Some(result.id),
+            Self::Event(event) => Some(event.id),
+        }
+    }
 }
 
 // this is the first message received from websocket,
 // that ask to provide a authetication method
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub(crate) struct AuthRequired {
-    #[serde(rename = "type")]
-    pub(crate) msg_type: String,
-    pub(crate) ha_version: String,
+pub struct AuthRequired {
+    pub ha_version: String,
 }
 
 // this is received when the service successfully autheticate
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub(crate) struct AuthOk {
-    //  #[serde(rename = "type")]
-    //  pub(crate) msg_type: String,
-    pub(crate) ha_version: String,
+pub struct AuthOk {
+    pub ha_version: String,
 }
 
 // this is received if the authetication failed
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub(crate) struct AuthInvalid {
-    // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
-    pub(crate) message: String,
+pub struct AuthInvalid {
+    pub message: String,
 }
 
 // this is received as a response to a ping request
 #[derive(Debug, Deserialize, PartialEq)]
-pub(crate) struct WSPong {
-    pub(crate) id: u64,
-    // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
+pub struct WSPong {
+    pub id: u64,
 }
 
 ///	This object represents the Home Assistant Event
@@ -67,9 +73,6 @@ pub(crate) struct WSPong {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct WSEvent {
     pub id: u64,
-    // r#type: String,
-    // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
     pub event: HassEvent,
 }
 
@@ -80,11 +83,28 @@ pub struct WSEvent {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct WSResult {
     pub id: u64,
-    // #[serde(rename = "type")]
-    // pub(crate) msg_type: String,
-    pub success: bool,
-    pub result: Option<Value>,
-    pub error: Option<ErrorCode>,
+    success: bool,
+    result: Option<Value>,
+    error: Option<ErrorCode>,
+}
+
+impl WSResult {
+    pub fn is_ok(&self) -> bool {
+        self.success
+    }
+
+    pub fn is_err(&self) -> bool {
+        !self.success
+    }
+
+    pub fn result(self) -> HassResult<Value> {
+        if self.success {
+            if let Some(result) = self.result {
+                return Ok(result);
+            }
+        }
+        Err(crate::HassError::ResponseError(self))
+    }
 }
 
 #[derive(Debug, Deserialize, PartialEq)]

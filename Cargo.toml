@@ -1,6 +1,6 @@
 [package]
 name = "hass-rs"
-version = "0.3.1"
+version = "0.4.0"
 description = "An async websocket client for Home Assistant"
 keywords = ["hass", "homeassistant", "tokio", "async-std"]
 authors = ["Dan Rusei <dan.rusei@gmail.com>"]
@@ -9,35 +9,27 @@ documentation = "https://docs.rs/hass-rs"
 readme = "README.md"
 license = "MIT"
 edition = "2021"
-exclude = [".github/*",]
+exclude = [".github/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["use-tokio"]
-use-tokio = ["tokio"]
-use-async-std = ["async-std"]
 
 [dependencies]
 futures-util = "0.3.30"
+log = "0.4"
+parking_lot = "0.12.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-async-tungstenite = "0.25"
-log = "0.4"
-#uuid = { version ="1.7", features = ["serde", "v4"]}
-
-tokio = { version = "1.36", optional = true, features = ["sync"] }
-async-std = { version = "1.12", optional = true, features = ["attributes"] }
+thiserror = "2.0.7"
+tokio = { version = "1.36", features = ["rt", "sync"] }
+tokio-tungstenite = "0.25"
 
 
 [dev-dependencies]
 lazy_static = "1.4.0"
 env_logger = "0.11"
-tokio-tungstenite = "0.21"
 tokio = { version = "1.36", features = ["full"] }
-async-std = { version = "1.12", features = ["attributes"] }
-async-tungstenite = {version = "0.25", features = ["async-std-runtime"]}
-
 
 [[example]]
 name = "get_cmds"
@@ -50,8 +42,4 @@ path = "examples/call_service.rs"
 [[example]]
 name = "subscribe_event"
 path = "examples/subscribe_event.rs"
-
-[[example]]
-name = "get_cmds_async_std"
-path = "examples/get_cmds_async_std.rs"
 

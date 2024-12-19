@@ -13,6 +13,3 @@ pub use types::*;
 
 pub mod client;
 pub use client::HassClient;
-
-mod runtime;
-use runtime::{Receiver, Sender};
