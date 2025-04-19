@@ -1,13 +1,15 @@
 use crate::types::{Context, HassEntity};
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use serde_json::Value;
+use std::{collections::HashMap, fmt};
 
 /// This object represents the Home Assistant Event
 ///
 /// received when the client is subscribed to
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)
 ///
-///This is created against StateChangedEvent, may not work with other event types
+/// This is created against StateChangedEvent, may not work with other event types, although
+/// extra fields are supported, so with some work it could be used for other events
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct HassEvent {
     pub data: EventData,
@@ -23,6 +25,8 @@ pub struct EventData {
     pub entity_id: Option<String>,
     pub new_state: Option<HassEntity>,
     pub old_state: Option<HassEntity>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
 }
 
 impl fmt::Display for HassEvent {
