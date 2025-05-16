@@ -15,6 +15,9 @@ pub(crate) enum Command {
     GetServices(Ask),
     GetStates(Ask),
     GetPanels(Ask),
+    GetAreaRegistryList(Ask),
+    GetDeviceRegistryList(Ask),
+    GetEntityRegistryList(Ask),
     CallService(CallService),
     #[allow(dead_code)]
     Close,
