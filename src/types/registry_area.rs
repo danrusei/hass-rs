@@ -6,7 +6,7 @@ pub struct HassRegistryArea {
     pub area_id: String,
     pub floor_id: Option<String>,
     pub humidity_entity_id: Option<String>,
-    pub icon: String,
+    pub icon: Option<String>,
     pub labels: Vec<String>,
     pub name: String,
     pub picture: Option<String>,
