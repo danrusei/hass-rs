@@ -2,6 +2,7 @@
 
 use crate::types::{
     Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassServices, Response,
+    HassRegistryArea, HassRegistryDevice, HassRegistryEntity,
     Subscribe, WSEvent,
 };
 use crate::{HassError, HassResult};
@@ -280,6 +281,72 @@ impl HassClient {
                 let value = data.result()?;
                 let services: HassPanels = serde_json::from_value(value)?;
                 Ok(services)
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
+        }
+    }
+
+    /// This will get the current area registry list from Home Assistant.
+    ///
+    /// The server will respond with a result message containing the area registry list.
+    pub async fn get_area_registry_list(&mut self) -> HassResult<Vec<HassRegistryArea>> {
+        let id = self.next_seq();
+
+        let area_req = Command::GetAreaRegistryList(Ask {
+            id,
+            msg_type: "config/area_registry/list".to_owned(),
+        });
+        let response = self.command(area_req, Some(id)).await?;
+
+        match response {
+            Response::Result(data) => {
+                let value = data.result()?;
+                let areas: Vec<HassRegistryArea> = serde_json::from_value(value)?;
+                Ok(areas)
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
+        }
+    }
+
+    /// This will get the current device registry list from Home Assistant.
+    ///
+    /// The server will respond with a result message containing the device registry list.
+    pub async fn get_device_registry_list(&mut self) -> HassResult<Vec<HassRegistryDevice>> {
+        let id = self.next_seq();
+
+        let device_req = Command::GetDeviceRegistryList(Ask {
+            id,
+            msg_type: "config/device_registry/list".to_owned(),
+        });
+        let response = self.command(device_req, Some(id)).await?;
+
+        match response {
+            Response::Result(data) => {
+                let value = data.result()?;
+                let devices: Vec<HassRegistryDevice> = serde_json::from_value(value)?;
+                Ok(devices)
+            }
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
+        }
+    }
+
+    /// This will get the current entity registry list from Home Assistant.
+    ///
+    /// The server will respond with a result message containing the entity registry list.
+    pub async fn get_entity_registry_list(&mut self) -> HassResult<Vec<HassRegistryEntity>> {
+        let id = self.next_seq();
+
+        let entity_req = Command::GetEntityRegistryList(Ask {
+            id,
+            msg_type: "config/entity_registry/list".to_owned(),
+        });
+        let response = self.command(entity_req, Some(id)).await?;
+
+        match response {
+            Response::Result(data) => {
+                let value = data.result()?;
+                let entities: Vec<HassRegistryEntity> = serde_json::from_value(value)?;
+                Ok(entities)
             }
             unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
