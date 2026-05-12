@@ -4,7 +4,7 @@ use crate::types::{
     Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassRegistryArea,
     HassRegistryDevice, HassRegistryEntity, HassServices, Response, Subscribe, WSEvent,
 };
-use crate::{HassError, HassResult};
+use crate::{HassError, HassIssues, HassResult};
 
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use parking_lot::Mutex;
@@ -421,6 +421,27 @@ impl HassClient {
                 return Ok(rx);
             }
             Response::Result(v) => Err(HassError::ResponseError(v)),
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
+        }
+    }
+
+    /// Lists pending issues of the Home Assistant instance.
+    pub async fn list_issues(&mut self) -> HassResult<HassIssues> {
+        let id = self.next_seq();
+
+        let cmd = Command::ListRepairs(Ask {
+            id,
+            msg_type: "repairs/list_issues".to_owned(),
+        });
+
+        let response = self.command(cmd, Some(id)).await?;
+
+        match response {
+            Response::Result(data) => {
+                let value = data.result()?;
+                let issues: HassIssues = serde_json::from_value(value)?;
+                Ok(issues)
+            }
             unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
