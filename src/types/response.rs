@@ -23,7 +23,6 @@ pub enum Response {
     //received when subscribed to event
     Event(WSEvent),
     //when the server close the websocket connection
-    #[allow(unused)]
     Close(String),
 }
 

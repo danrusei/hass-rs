@@ -18,6 +18,7 @@ pub(crate) enum Command {
     GetAreaRegistryList(Ask),
     GetDeviceRegistryList(Ask),
     GetEntityRegistryList(Ask),
+    ListRepairs(Ask),
     CallService(CallService),
     #[allow(dead_code)]
     Close,

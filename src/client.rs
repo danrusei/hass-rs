@@ -1,11 +1,10 @@
 //! Home Assistant client implementation
 
 use crate::types::{
-    Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassServices, Response,
-    HassRegistryArea, HassRegistryDevice, HassRegistryEntity,
-    Subscribe, WSEvent,
+    Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassRegistryArea,
+    HassRegistryDevice, HassRegistryEntity, HassServices, Response, Subscribe, WSEvent,
 };
-use crate::{HassError, HassResult};
+use crate::{HassError, HassIssues, HassResult};
 
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use parking_lot::Mutex;
@@ -114,6 +113,20 @@ async fn ws_incoming_messages(
                         log::error!("Error responding to ping: {err:#}");
                         break;
                     }
+                }
+                Ok(Message::Close(frame)) => {
+                    log::info!("Close message received: {:?}", frame);
+
+                    let close_reason = frame.map_or_else(String::new, |f| f.reason.into_owned());
+
+                    if let Some(tx) = rx_state.take_untagged() {
+                        tx.send(Response::Close(close_reason.clone())).ok();
+                    }
+                    let mut pending_requests = rx_state.pending_requests.lock();
+                    for (_, tx) in pending_requests.drain() {
+                        tx.send(Response::Close(close_reason.clone())).ok();
+                    }
+                    break;
                 }
                 unexpected => log::error!("Unexpected message: {unexpected:#?}"),
             },
@@ -381,6 +394,8 @@ impl HassClient {
                 data.result()?;
                 Ok(())
             }
+            // Usually happens when service triggers Home Assistant reboot, e.g. hassio.host_reboot or update.home_assistant_core_update.
+            Response::Close(_reason) => Err(HassError::ConnectionClosed),
             unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
@@ -406,6 +421,27 @@ impl HassClient {
                 return Ok(rx);
             }
             Response::Result(v) => Err(HassError::ResponseError(v)),
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
+        }
+    }
+
+    /// Lists pending issues of the Home Assistant instance.
+    pub async fn list_issues(&mut self) -> HassResult<HassIssues> {
+        let id = self.next_seq();
+
+        let cmd = Command::ListRepairs(Ask {
+            id,
+            msg_type: "repairs/list_issues".to_owned(),
+        });
+
+        let response = self.command(cmd, Some(id)).await?;
+
+        match response {
+            Response::Result(data) => {
+                let value = data.result()?;
+                let issues: HassIssues = serde_json::from_value(value)?;
+                Ok(issues)
+            }
             unknown => Err(HassError::UnknownPayloadReceived(unknown)),
         }
     }
