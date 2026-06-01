@@ -1,11 +1,8 @@
 use hass_rs::client::HassClient;
-use lazy_static::lazy_static;
 use std::env::var;
+use std::sync::OnceLock;
 
-lazy_static! {
-    static ref TOKEN: String =
-        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
-}
+static TOKEN: OnceLock<String> = OnceLock::new();
 
 #[tokio::main]
 async fn main() {
@@ -14,12 +11,16 @@ async fn main() {
     println!("Connecting to - {}", url);
     let mut client = HassClient::new(url).await.expect("Failed to connect");
 
-    client
-        .auth_with_longlivedtoken(&*TOKEN)
-        .await
-        .expect("Not able to autheticate");
+    let token = TOKEN.get_or_init(|| {
+        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this")
+    });
 
-    println!("WebSocket connection and authethication works\n");
+    client
+        .auth_with_longlivedtoken(token)
+        .await
+        .expect("Not able to authenticate");
+
+    println!("WebSocket connection and authentication works\n");
 
     println!("Getting the Config:\n");
     let cmd2 = client
@@ -42,9 +43,9 @@ async fn main() {
         .get_panels()
         .await
         .expect("Unable to retrieve the Panels");
-    for (key, pannel) in cmd5 {
-        println!("pannel_key: {}\n", key);
-        println!("pannel: {}\n", pannel);
+    for (key, panel) in cmd5 {
+        println!("panel_key: {}\n", key);
+        println!("panel: {}\n", panel);
     }
 
     // println!("Getting the Services:\n");

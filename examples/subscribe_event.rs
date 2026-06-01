@@ -1,12 +1,9 @@
 use hass_rs::client::HassClient;
-use lazy_static::lazy_static;
 use std::env::var;
+use std::sync::OnceLock;
 use std::{thread, time};
 
-lazy_static! {
-    static ref TOKEN: String =
-        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
-}
+static TOKEN: OnceLock<String> = OnceLock::new();
 
 #[tokio::main]
 async fn main() {
@@ -15,12 +12,16 @@ async fn main() {
     println!("Connecting to - {}", url);
     let mut client = HassClient::new(url).await.expect("Failed to connect");
 
-    client
-        .auth_with_longlivedtoken(&*TOKEN)
-        .await
-        .expect("Not able to autheticate");
+    let token = TOKEN.get_or_init(|| {
+        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this")
+    });
 
-    println!("WebSocket connection and authethication works\n");
+    client
+        .auth_with_longlivedtoken(token)
+        .await
+        .expect("Not able to authenticate");
+
+    println!("WebSocket connection and authentication works\n");
 
     println!("Subscribe to an Event");
 
@@ -49,4 +50,4 @@ async fn main() {
 // Event Received: WSEvent { id: 1, event: HassEvent { data: EventData { entity_id: None, new_state: None, old_state: None }, event_type: "state_changed", time_fired: "2024-02-16T09:46:57.997747+00:00", origin: "REMOTE", context: Context { id: "01HPRMZQJDCEHT1PRQKK6H96AH", parent_id: None, user_id: Some("f069978dd7964042824cb09287fe7c73") } } }
 //
 // Unsubscribe the Event
-// Succefully unsubscribed: Ok
+// Successfully unsubscribed: Ok

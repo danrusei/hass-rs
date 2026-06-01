@@ -1,12 +1,9 @@
 use hass_rs::client::HassClient;
-use lazy_static::lazy_static;
 use serde_json::json;
 use std::env::var;
+use std::sync::OnceLock;
 
-lazy_static! {
-    static ref TOKEN: String =
-        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this");
-}
+static TOKEN: OnceLock<String> = OnceLock::new();
 
 #[tokio::main]
 async fn main() {
@@ -15,12 +12,16 @@ async fn main() {
     println!("Connecting to - {}", url);
     let mut client = HassClient::new(url).await.expect("Failed to connect");
 
-    client
-        .auth_with_longlivedtoken(&*TOKEN)
-        .await
-        .expect("Not able to autheticate");
+    let token = TOKEN.get_or_init(|| {
+        var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this")
+    });
 
-    println!("WebSocket connection and authethication works\n");
+    client
+        .auth_with_longlivedtoken(token)
+        .await
+        .expect("Not able to authenticate");
+
+    println!("WebSocket connection and authentication works\n");
 
     let domain = "homeassistant";
     let service = "turn_on";

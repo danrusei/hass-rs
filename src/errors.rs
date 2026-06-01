@@ -45,7 +45,7 @@ pub enum HassError {
     #[error("ResponseError: {0:?}")]
     ResponseError(WSResult),
 
-    /// Returned for errors which do not fit any of the above criterias
+    /// Returned for errors which do not fit any of the above criteria
     #[error("Generic Error: {0}")]
     Generic(String),
 }

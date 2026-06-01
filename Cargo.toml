@@ -16,20 +16,19 @@ exclude = [".github/*"]
 [features]
 
 [dependencies]
-futures-util = "0.3.30"
+futures-util = "0.3.32"
 log = "0.4"
-parking_lot = "0.12.3"
+parking_lot = "0.12"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-thiserror = "2.0.7"
-tokio = { version = "1.36", features = ["rt", "sync"] }
-tokio-tungstenite = "0.25"
+thiserror = "2.0"
+tokio = { version = "1.52", features = ["rt", "sync"] }
+tokio-tungstenite = "0.29"
 
 
 [dev-dependencies]
-lazy_static = "1.4.0"
 env_logger = "0.11"
-tokio = { version = "1.36", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
 
 [[example]]
 name = "get_cmds"

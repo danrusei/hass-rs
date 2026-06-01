@@ -117,7 +117,7 @@ async fn ws_incoming_messages(
                 Ok(Message::Close(frame)) => {
                     log::info!("Close message received: {:?}", frame);
 
-                    let close_reason = frame.map_or_else(String::new, |f| f.reason.into_owned());
+                    let close_reason = frame.map_or_else(String::new, |f| f.reason.to_string());
 
                     if let Some(tx) = rx_state.take_untagged() {
                         tx.send(Response::Close(close_reason.clone())).ok();
@@ -182,7 +182,7 @@ impl HassClient {
 
         let response = self.command(auth_message, None).await?;
 
-        // Check if the authetication was succefully, should receive {"type": "auth_ok"}
+        // Check if the authentication was successfully, should receive {"type": "auth_ok"}
         match response {
             Response::AuthOk(_) => Ok(()),
             Response::AuthInvalid(err) => Err(HassError::AuthenticationFailed(err.message)),
