@@ -23,3 +23,5 @@ jobs:
         run: cargo test --example call_service
       - name: Run example subscribe_event
         run: cargo test --example subscribe_event
+      - name: Run tests
+        run: cargo test --verbose

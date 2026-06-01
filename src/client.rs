@@ -2,7 +2,8 @@
 
 use crate::types::{
     Ask, Auth, CallService, Command, HassConfig, HassEntity, HassPanels, HassRegistryArea,
-    HassRegistryDevice, HassRegistryEntity, HassServices, Response, Subscribe, WSEvent,
+    HassRegistryDevice, HassRegistryEntity, HassServices, Response, Subscribe, Unsubscribe,
+    WSEvent,
 };
 use crate::{HassError, HassIssues, HassResult};
 
@@ -22,7 +23,7 @@ use tokio_tungstenite::{connect_async, WebSocketStream};
 /// it provides a number of convenient functions that creates the requests and read the messages from server
 pub struct HassClient {
     // holds the id of the WS message
-    last_sequence: AtomicU64,
+    last_sequence: Arc<AtomicU64>,
 
     rx_state: Arc<ReceiverState>,
 
@@ -59,6 +60,7 @@ async fn ws_incoming_messages(
     mut stream: SplitStream<WebSocketStream<impl AsyncRead + AsyncWrite + Unpin>>,
     rx_state: Arc<ReceiverState>,
     message_tx: Arc<Sender<Message>>,
+    last_sequence: Arc<AtomicU64>,
 ) {
     while let Some(message) = stream.next().await {
         log::trace!("incoming: {message:#?}");
@@ -69,7 +71,13 @@ async fn ws_incoming_messages(
                 if let Some(tx) = rx_state.get_tx(id) {
                     if tx.send(event).await.is_err() {
                         rx_state.rm_subscription(id);
-                        // TODO: send unsub request here
+                        let unsub_id = last_sequence.fetch_add(1, Ordering::Relaxed);
+                        let cmd = Command::Unsubscribe(Unsubscribe {
+                            id: unsub_id,
+                            msg_type: "unsubscribe_events".to_owned(),
+                            subscription: id,
+                        });
+                        let _ = message_tx.send(cmd.to_tungstenite_message()).await;
                     }
                 }
             }
@@ -143,6 +151,7 @@ impl HassClient {
         let message_tx = Arc::new(message_tx);
 
         let rx_state = Arc::new(ReceiverState::default());
+        let last_sequence = Arc::new(AtomicU64::new(1));
 
         tokio::spawn(async move {
             while let Some(msg) = message_rx.recv().await {
@@ -156,9 +165,8 @@ impl HassClient {
             stream,
             rx_state.clone(),
             message_tx.clone(),
+            last_sequence.clone(),
         ));
-
-        let last_sequence = AtomicU64::new(1);
 
         Ok(Self {
             last_sequence,
@@ -474,6 +482,28 @@ impl HassClient {
     /// get message sequence required by the Websocket server
     fn next_seq(&self) -> u64 {
         self.last_sequence.fetch_add(1, Ordering::Relaxed)
+    }
+
+    /// This will unsubscribe from an event subscription.
+    pub async fn unsubscribe_event(&mut self, subscription_id: u64) -> HassResult<()> {
+        let id = self.next_seq();
+
+        let cmd = Command::Unsubscribe(Unsubscribe {
+            id,
+            msg_type: "unsubscribe_events".to_owned(),
+            subscription: subscription_id,
+        });
+
+        let response = self.command(cmd, Some(id)).await?;
+
+        match response {
+            Response::Result(v) if v.is_ok() => {
+                self.rx_state.rm_subscription(subscription_id);
+                Ok(())
+            }
+            Response::Result(v) => Err(HassError::ResponseError(v)),
+            unknown => Err(HassError::UnknownPayloadReceived(unknown)),
+        }
     }
 }
 

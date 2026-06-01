@@ -81,4 +81,4 @@ async fn main() {
   * [x] Fetching services
   * [x] Fetching panels
   * [ ] Fetching media player thumbnails (you need this?, raise an Issue)
-* [ ] Ping - Pong
+* [x] Ping - Pong
