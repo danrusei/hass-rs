@@ -41,7 +41,7 @@ async fn test_auth_success() {
         .unwrap();
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     let auth_res = client.auth_with_longlivedtoken("valid_token").await;
     assert!(auth_res.is_ok());
 
@@ -77,7 +77,7 @@ async fn test_auth_failure() {
         .unwrap();
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     let auth_res = client.auth_with_longlivedtoken("invalid_token").await;
     assert!(auth_res.is_err());
     if let Err(HassError::AuthenticationFailed(msg)) = auth_res {
@@ -121,7 +121,7 @@ async fn test_ping_pong() {
             .unwrap();
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     client.auth_with_longlivedtoken("token").await.unwrap();
 
     let ping_res = client.ping().await;
@@ -187,7 +187,7 @@ async fn test_get_config() {
         ws.send(Message::Text(response_json.into())).await.unwrap();
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     client.auth_with_longlivedtoken("token").await.unwrap();
 
     let config = client.get_config().await.unwrap();
@@ -269,7 +269,7 @@ async fn test_subscribe_events() {
         ws.send(Message::Text(event_json.into())).await.unwrap();
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     client.auth_with_longlivedtoken("token").await.unwrap();
 
     let mut rx = client.subscribe_event("state_changed").await.unwrap();
@@ -311,7 +311,7 @@ async fn test_close_connection() {
         ws.send(Message::Close(None)).await.unwrap();
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     client.auth_with_longlivedtoken("token").await.unwrap();
 
     let res = client.get_config().await;
@@ -377,7 +377,7 @@ async fn test_unsubscribe_event_manual() {
         .unwrap();
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     client.auth_with_longlivedtoken("token").await.unwrap();
 
     let _rx = client.subscribe_event("state_changed").await.unwrap();
@@ -453,7 +453,7 @@ async fn test_unsubscribe_event_auto() {
         assert!(text.contains(r#""subscription":1"#));
     });
 
-    let mut client = HassClient::new(&url).await.unwrap();
+    let client = HassClient::new(&url).await.unwrap();
     client.auth_with_longlivedtoken("token").await.unwrap();
 
     let rx = client.subscribe_event("state_changed").await.unwrap();
