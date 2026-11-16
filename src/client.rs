@@ -40,7 +40,7 @@ struct ReceiverState {
 
 impl ReceiverState {
     fn get_tx(self: &Arc<Self>, id: u64) -> Option<Sender<WSEvent>> {
-        self.subscriptions.lock().get(&id).map(|tx| tx.clone())
+        self.subscriptions.lock().get(&id).cloned()
     }
 
     fn rm_subscription(self: &Arc<Self>, id: u64) {
@@ -77,14 +77,14 @@ async fn ws_incoming_messages(
                             msg_type: "unsubscribe_events".to_owned(),
                             subscription: id,
                         });
-                        let _ = message_tx.send(cmd.to_tungstenite_message()).await;
+                        let _ = message_tx.send(cmd.into_tungstenite_message()).await;
                     }
                 }
             }
             Err(message) => match message {
                 Ok(Message::Text(data)) => {
                     let payload: Result<Response, HassError> = serde_json::from_str(data.as_str())
-                        .map_err(|err| HassError::UnableToDeserialize(err));
+                        .map_err(HassError::UnableToDeserialize);
 
                     match payload {
                         Ok(response) => match response.id() {
@@ -181,7 +181,6 @@ impl HassClient {
     /// The first message from the client should be an auth message. You can authorize with an access token.
     /// If the client supplies valid authentication, the authentication phase will complete by the server sending the auth_ok message.
     /// If the data is incorrect, the server will reply with auth_invalid message and disconnect the session.
-
     pub async fn auth_with_longlivedtoken(&mut self, token: &str) -> HassResult<()> {
         let auth_message = Command::AuthInit(Auth {
             msg_type: "auth".to_owned(),
@@ -242,7 +241,6 @@ impl HassClient {
     /// This will get all the current states from Home Assistant.
     ///
     /// The server will respond with a result message containing the states.
-
     pub async fn get_states(&mut self) -> HassResult<Vec<HassEntity>> {
         let id = self.next_seq();
 
@@ -265,7 +263,6 @@ impl HassClient {
     /// This will get all the services from Home Assistant.
     ///
     /// The server will respond with a result message containing the services.
-
     pub async fn get_services(&mut self) -> HassResult<HassServices> {
         let id = self.next_seq();
         let services_req = Command::GetServices(Ask {
@@ -287,7 +284,6 @@ impl HassClient {
     /// This will get all the registered panels from Home Assistant.
     ///
     /// The server will respond with a result message containing the current registered panels.
-
     pub async fn get_panels(&mut self) -> HassResult<HassPanels> {
         let id = self.next_seq();
 
@@ -379,7 +375,6 @@ impl HassClient {
     /// The server will indicate with a message indicating that the service is done executing.
     /// <https://developers.home-assistant.io/docs/api/websocket#calling-a-service>
     /// additional info : <https://developers.home-assistant.io/docs/api/rest> ==> Post `/api/services/<domain>/<service>`
-
     pub async fn call_service(
         &mut self,
         domain: String,
@@ -426,7 +421,7 @@ impl HassClient {
             Response::Result(v) if v.is_ok() => {
                 let (tx, rx) = channel(20);
                 self.rx_state.subscriptions.lock().insert(v.id, tx);
-                return Ok(rx);
+                Ok(rx)
             }
             Response::Result(v) => Err(HassError::ResponseError(v)),
             unknown => Err(HassError::UnknownPayloadReceived(unknown)),
@@ -456,7 +451,7 @@ impl HassClient {
 
     /// send commands and receive responses from the gateway
     pub(crate) async fn command(&mut self, cmd: Command, id: Option<u64>) -> HassResult<Response> {
-        let cmd_tungstenite = cmd.to_tungstenite_message();
+        let cmd_tungstenite = cmd.into_tungstenite_message();
 
         let (tx, rx) = oneshot();
 
@@ -513,10 +508,10 @@ fn check_if_event(result: Result<Message, Error>) -> Result<WSEvent, Result<Mess
     match result {
         Ok(Message::Text(data)) => {
             let payload: Result<Response, HassError> =
-                serde_json::from_str(data.as_str()).map_err(|err| HassError::from(err));
+                serde_json::from_str(data.as_str()).map_err(HassError::from);
 
             if let Ok(Response::Event(event)) = payload {
-                Ok(event)
+                Ok(*event)
             } else {
                 Err(Ok(Message::Text(data)))
             }

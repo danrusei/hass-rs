@@ -41,28 +41,28 @@ pub struct Field {
 
 impl fmt::Display for HassServices {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HassServices {{\n")?;
-        write!(f, "  domain: {{\n")?;
+        writeln!(f, "HassServices {{")?;
+        writeln!(f, "  domain: {{")?;
         for (domain_name, service_name) in &self.0 {
-            write!(f, "    {}: {{\n", domain_name)?;
+            writeln!(f, "    {}: {{", domain_name)?;
             for (service_name, hass_service) in service_name {
-                write!(f, "      {}: {{\n", service_name)?;
-                write!(f, "        name: {:?},\n", hass_service.name)?;
-                write!(f, "        description: {:?},\n", hass_service.description)?;
-                write!(f, "        fields: {{\n")?;
+                writeln!(f, "      {}: {{", service_name)?;
+                writeln!(f, "        name: {:?},", hass_service.name)?;
+                writeln!(f, "        description: {:?},", hass_service.description)?;
+                writeln!(f, "        fields: {{")?;
                 for (field_name, field) in &hass_service.fields {
-                    write!(f, "          {}: {{\n", field_name)?;
-                    write!(f, "            name: {:?},\n", field.name)?;
-                    write!(f, "            description: {:?},\n", field.description)?;
-                    write!(f, "            example: {:?},\n", field.example)?;
-                    write!(f, "          }},\n")?;
+                    writeln!(f, "          {}: {{", field_name)?;
+                    writeln!(f, "            name: {:?},", field.name)?;
+                    writeln!(f, "            description: {:?},", field.description)?;
+                    writeln!(f, "            example: {:?},", field.example)?;
+                    writeln!(f, "          }},")?;
                 }
-                write!(f, "        }},\n")?;
-                write!(f, "      }},\n")?;
+                writeln!(f, "        }},")?;
+                writeln!(f, "      }},")?;
             }
-            write!(f, "    }},\n")?;
+            writeln!(f, "    }},")?;
         }
-        write!(f, "  }},\n")?;
+        writeln!(f, "  }},")?;
         write!(f, "}}")?;
         Ok(())
     }
@@ -70,15 +70,15 @@ impl fmt::Display for HassServices {
 
 impl fmt::Display for HassService {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "    name: {:?},\n", self.name)?;
-        write!(f, "    description: {:?},\n", self.description)?;
-        write!(f, "    fields: {{\n")?;
+        writeln!(f, "    name: {:?},", self.name)?;
+        writeln!(f, "    description: {:?},", self.description)?;
+        writeln!(f, "    fields: {{")?;
         for (field_name, field) in &self.fields {
-            write!(f, "      {}: {{\n", field_name)?;
-            write!(f, "          name: {:?},\n", field.name)?;
-            write!(f, "          description: {:?},\n", field.description)?;
-            write!(f, "          example: {:?},\n", field.example)?;
-            write!(f, "          }},\n")?;
+            writeln!(f, "      {}: {{", field_name)?;
+            writeln!(f, "          name: {:?},", field.name)?;
+            writeln!(f, "          description: {:?},", field.description)?;
+            writeln!(f, "          example: {:?},", field.example)?;
+            writeln!(f, "          }},")?;
         }
         Ok(())
     }

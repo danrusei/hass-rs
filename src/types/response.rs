@@ -21,7 +21,7 @@ pub enum Response {
     //response to ping request
     Pong(WSPong),
     //received when subscribed to event
-    Event(WSEvent),
+    Event(Box<WSEvent>),
     //when the server close the websocket connection
     Close(String),
 }
@@ -65,7 +65,7 @@ pub struct WSPong {
     pub id: u64,
 }
 
-///	This object represents the Home Assistant Event
+/// This object represents the Home Assistant Event
 ///
 /// received when the client is subscribed to
 /// [Subscribe to events](https://developers.home-assistant.io/docs/api/websocket/#subscribe-to-events)

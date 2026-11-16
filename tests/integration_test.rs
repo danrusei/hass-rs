@@ -495,5 +495,6 @@ fn test_deserialize_event() {
     println!("DESERIALIZATION RESULT: {:?}", res);
     let res = res.unwrap();
     assert!(matches!(res, hass_rs::types::Response::Event(_)));
+    assert_eq!(res.id(), Some(1));
 }
 

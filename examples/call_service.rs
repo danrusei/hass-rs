@@ -36,7 +36,7 @@ async fn main() {
     // Validate if the selected **domain** and **service** exist
     if let Some(service_names) = cmd1.list_services(domain) {
         for (name, hass_service) in service_names {
-            if name == service.to_string() {
+            if name == service {
                 println!("Name: {}", name);
                 println!("hass_service: {}", hass_service);
             }
@@ -65,11 +65,11 @@ async fn main() {
     });
 
     println!("Calling a service:, in this specific case to turn ON the TV\n");
-    let cmd3 = client
+    client
         .call_service(domain.to_owned(), service.to_owned(), Some(value))
         .await
         .expect("Unable to call the targeted service");
-    println!("service: {:?}\n", cmd3);
+    println!("service: {:?}\n", service);
 
     //check the new Entity state
     println!("Getting again the States (Entities):\n");

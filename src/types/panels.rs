@@ -34,13 +34,13 @@ pub struct HassCustomPanelConfig {
 
 impl fmt::Display for HassPanel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HassPanel {{\n")?;
-        write!(f, "  component_name: {},\n", self.component_name)?;
-        write!(f, "  config: {:?},\n", self.config)?;
-        write!(f, "  icon: {:?},\n", self.icon)?;
-        write!(f, "  require_admin: {},\n", self.require_admin)?;
-        write!(f, "  title: {:?},\n", self.title)?;
-        write!(f, "  url_path: {},\n", self.url_path)?;
+        writeln!(f, "HassPanel {{")?;
+        writeln!(f, "  component_name: {},", self.component_name)?;
+        writeln!(f, "  config: {:?},", self.config)?;
+        writeln!(f, "  icon: {:?},", self.icon)?;
+        writeln!(f, "  require_admin: {},", self.require_admin)?;
+        writeln!(f, "  title: {:?},", self.title)?;
+        writeln!(f, "  url_path: {},", self.url_path)?;
         write!(f, "}}")?;
         Ok(())
     }
@@ -48,10 +48,10 @@ impl fmt::Display for HassPanel {
 
 impl fmt::Display for HassPanelConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HassPanelConfig {{\n")?;
-        write!(f, "  custom_panel: {:?},\n", self.custom_panel)?;
-        write!(f, "  mode: {:?},\n", self.mode)?;
-        write!(f, "  title: {:?},\n", self.title)?;
+        writeln!(f, "HassPanelConfig {{")?;
+        writeln!(f, "  custom_panel: {:?},", self.custom_panel)?;
+        writeln!(f, "  mode: {:?},", self.mode)?;
+        writeln!(f, "  title: {:?},", self.title)?;
         write!(f, "}}")?;
         Ok(())
     }
@@ -59,12 +59,12 @@ impl fmt::Display for HassPanelConfig {
 
 impl fmt::Display for HassCustomPanelConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HassCustomPanelConfig {{\n")?;
-        write!(f, "  embed_iframe: {},\n", self.embed_iframe)?;
-        write!(f, "  module_url: {:?},\n", self.module_url)?;
-        write!(f, "  js_url: {:?},\n", self.js_url)?;
-        write!(f, "  name: {},\n", self.name)?;
-        write!(f, "  trust_external: {},\n", self.trust_external)?;
+        writeln!(f, "HassCustomPanelConfig {{")?;
+        writeln!(f, "  embed_iframe: {},", self.embed_iframe)?;
+        writeln!(f, "  module_url: {:?},", self.module_url)?;
+        writeln!(f, "  js_url: {:?},", self.js_url)?;
+        writeln!(f, "  name: {},", self.name)?;
+        writeln!(f, "  trust_external: {},", self.trust_external)?;
         write!(f, "}}")?;
         Ok(())
     }
