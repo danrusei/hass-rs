@@ -352,7 +352,10 @@ async fn test_unsubscribe_event_manual() {
 
         // 1. Expect subscribe_events command (ID = 1)
         let msg = ws.next().await.unwrap().unwrap();
-        assert!(msg.to_text().unwrap().contains(r#""type":"subscribe_events""#));
+        assert!(msg
+            .to_text()
+            .unwrap()
+            .contains(r#""type":"subscribe_events""#));
         ws.send(Message::Text(
             r#"{"id":1,"type":"result","success":true,"result":null}"#.into(),
         ))
@@ -409,7 +412,10 @@ async fn test_unsubscribe_event_auto() {
 
         // 1. Expect subscribe_events command (ID = 1)
         let msg = ws.next().await.unwrap().unwrap();
-        assert!(msg.to_text().unwrap().contains(r#""type":"subscribe_events""#));
+        assert!(msg
+            .to_text()
+            .unwrap()
+            .contains(r#""type":"subscribe_events""#));
         ws.send(Message::Text(
             r#"{"id":1,"type":"result","success":true,"result":null}"#.into(),
         ))
@@ -458,7 +464,6 @@ async fn test_unsubscribe_event_auto() {
     server_task.await.unwrap();
 }
 
-
 #[test]
 fn test_deserialize_event() {
     let event_json = r#"{
@@ -497,4 +502,3 @@ fn test_deserialize_event() {
     assert!(matches!(res, hass_rs::types::Response::Event(_)));
     assert_eq!(res.id(), Some(1));
 }
-

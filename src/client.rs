@@ -83,8 +83,8 @@ async fn ws_incoming_messages(
             }
             Err(message) => match message {
                 Ok(Message::Text(data)) => {
-                    let payload: Result<Response, HassError> = serde_json::from_str(data.as_str())
-                        .map_err(HassError::UnableToDeserialize);
+                    let payload: Result<Response, HassError> =
+                        serde_json::from_str(data.as_str()).map_err(HassError::UnableToDeserialize);
 
                     match payload {
                         Ok(response) => match response.id() {
