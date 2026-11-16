@@ -35,25 +35,25 @@ pub struct UnitSystem {
 
 impl fmt::Display for HassConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HassConfig {{\n")?;
-        write!(f, "  latitude: {},\n", self.latitude)?;
-        write!(f, "  longitude: {},\n", self.longitude)?;
-        write!(f, "  elevation: {},\n", self.elevation)?;
-        write!(f, "  unit_system: {:?},\n", self.unit_system)?;
-        write!(f, "  location_name: {},\n", self.location_name)?;
-        write!(f, "  time_zone: {},\n", self.time_zone)?;
-        write!(f, "  components: {:?},\n", self.components)?;
-        write!(f, "  config_dir: {},\n", self.config_dir)?;
-        write!(
+        writeln!(f, "HassConfig {{")?;
+        writeln!(f, "  latitude: {},", self.latitude)?;
+        writeln!(f, "  longitude: {},", self.longitude)?;
+        writeln!(f, "  elevation: {},", self.elevation)?;
+        writeln!(f, "  unit_system: {:?},", self.unit_system)?;
+        writeln!(f, "  location_name: {},", self.location_name)?;
+        writeln!(f, "  time_zone: {},", self.time_zone)?;
+        writeln!(f, "  components: {:?},", self.components)?;
+        writeln!(f, "  config_dir: {},", self.config_dir)?;
+        writeln!(
             f,
-            "  whitelist_external_dirs: {:?},\n",
+            "  whitelist_external_dirs: {:?},",
             self.whitelist_external_dirs
         )?;
-        write!(f, "  version: {},\n", self.version)?;
-        write!(f, "  config_source: {},\n", self.config_source)?;
-        write!(f, "  safe_mode: {},\n", self.safe_mode)?;
-        write!(f, "  external_url: {:?},\n", self.external_url)?;
-        write!(f, "  internal_url: {:?},\n", self.internal_url)?;
+        writeln!(f, "  version: {},", self.version)?;
+        writeln!(f, "  config_source: {},", self.config_source)?;
+        writeln!(f, "  safe_mode: {},", self.safe_mode)?;
+        writeln!(f, "  external_url: {:?},", self.external_url)?;
+        writeln!(f, "  internal_url: {:?},", self.internal_url)?;
         write!(f, "}}")?;
         Ok(())
     }
@@ -61,12 +61,12 @@ impl fmt::Display for HassConfig {
 
 impl fmt::Display for UnitSystem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "UnitSystem {{\n")?;
-        write!(f, "  length: {},\n", self.length)?;
-        write!(f, "  mass: {},\n", self.mass)?;
-        write!(f, "  pressure: {},\n", self.pressure)?;
-        write!(f, "  temperature: {},\n", self.temperature)?;
-        write!(f, "  volume: {},\n", self.volume)?;
+        writeln!(f, "UnitSystem {{")?;
+        writeln!(f, "  length: {},", self.length)?;
+        writeln!(f, "  mass: {},", self.mass)?;
+        writeln!(f, "  pressure: {},", self.pressure)?;
+        writeln!(f, "  temperature: {},", self.temperature)?;
+        writeln!(f, "  volume: {},", self.volume)?;
         write!(f, "}}")?;
         Ok(())
     }

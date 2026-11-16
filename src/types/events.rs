@@ -31,16 +31,16 @@ pub struct EventData {
 
 impl fmt::Display for HassEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HassEvent {{\n")?;
-        write!(f, "  event_type: {},\n", self.event_type)?;
-        write!(f, "  data: {{\n")?;
-        write!(f, "    entity_id: {:?},\n", self.data.entity_id)?;
-        write!(f, "    new_state: {:?},\n", self.data.new_state)?;
-        write!(f, "    old_state: {:?},\n", self.data.old_state)?;
-        write!(f, "  }},\n")?;
-        write!(f, "  origin: {},\n", self.origin)?;
-        write!(f, "  time_fired: {},\n", self.time_fired)?;
-        write!(f, "  context: {:?},\n", self.context)?;
+        writeln!(f, "HassEvent {{")?;
+        writeln!(f, "  event_type: {},", self.event_type)?;
+        writeln!(f, "  data: {{")?;
+        writeln!(f, "    entity_id: {:?},", self.data.entity_id)?;
+        writeln!(f, "    new_state: {:?},", self.data.new_state)?;
+        writeln!(f, "    old_state: {:?},", self.data.old_state)?;
+        writeln!(f, "  }},")?;
+        writeln!(f, "  origin: {},", self.origin)?;
+        writeln!(f, "  time_fired: {},", self.time_fired)?;
+        writeln!(f, "  context: {:?},", self.context)?;
         write!(f, "}}")?;
         Ok(())
     }

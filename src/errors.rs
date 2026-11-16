@@ -22,7 +22,7 @@ pub enum HassError {
     #[error("Connection closed unexpectedly")]
     ConnectionClosed,
 
-    /// Mpsc channel SendError<T> message
+    /// Mpsc channel `SendError<T>` message
     #[error("Unable to send the message on channel: {0}")]
     SendError(String),
 

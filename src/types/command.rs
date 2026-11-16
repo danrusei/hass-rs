@@ -26,7 +26,7 @@ pub(crate) enum Command {
 impl Command {
     /// This function transform a command into a TungsteniteMessage and needs the last
     /// gateway sequence in order to send it correctly
-    pub(crate) fn to_tungstenite_message(self) -> TungsteniteMessage {
+    pub(crate) fn into_tungstenite_message(self) -> TungsteniteMessage {
         let cmd_str = serde_json::to_string(&self).unwrap();
         TungsteniteMessage::text(cmd_str)
     }

@@ -9,7 +9,7 @@ async fn main() {
     let url = "ws://localhost:8123/api/websocket";
 
     println!("Connecting to - {}", url);
-    let mut client = HassClient::new(url).await.expect("Failed to connect");
+    let client = HassClient::new(url).await.expect("Failed to connect");
 
     let token = TOKEN.get_or_init(|| {
         var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this")

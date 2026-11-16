@@ -10,7 +10,7 @@ async fn main() {
     let url = "ws://localhost:8123/api/websocket";
 
     println!("Connecting to - {}", url);
-    let mut client = HassClient::new(url).await.expect("Failed to connect");
+    let client = HassClient::new(url).await.expect("Failed to connect");
 
     let token = TOKEN.get_or_init(|| {
         var("HASS_TOKEN").expect("please set up the HASS_TOKEN env variable before running this")
@@ -36,7 +36,7 @@ async fn main() {
     // Validate if the selected **domain** and **service** exist
     if let Some(service_names) = cmd1.list_services(domain) {
         for (name, hass_service) in service_names {
-            if name == service.to_string() {
+            if name == service {
                 println!("Name: {}", name);
                 println!("hass_service: {}", hass_service);
             }
@@ -65,11 +65,11 @@ async fn main() {
     });
 
     println!("Calling a service:, in this specific case to turn ON the TV\n");
-    let cmd3 = client
+    client
         .call_service(domain.to_owned(), service.to_owned(), Some(value))
         .await
         .expect("Unable to call the targeted service");
-    println!("service: {:?}\n", cmd3);
+    println!("service: {:?}\n", service);
 
     //check the new Entity state
     println!("Getting again the States (Entities):\n");

@@ -25,13 +25,13 @@ pub struct Context {
 
 impl fmt::Display for HassEntity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HassEntity {{\n")?;
-        write!(f, "  entity_id: {},\n", self.entity_id)?;
-        write!(f, "  state: {},\n", self.state)?;
-        write!(f, "  last_changed: {},\n", self.last_changed)?;
-        write!(f, "  last_updated: {},\n", self.last_updated)?;
-        write!(f, "  attributes: {:?},\n", self.attributes)?;
-        write!(f, "  context: {:?},\n", self.context)?;
+        writeln!(f, "HassEntity {{")?;
+        writeln!(f, "  entity_id: {},", self.entity_id)?;
+        writeln!(f, "  state: {},", self.state)?;
+        writeln!(f, "  last_changed: {},", self.last_changed)?;
+        writeln!(f, "  last_updated: {},", self.last_updated)?;
+        writeln!(f, "  attributes: {:?},", self.attributes)?;
+        writeln!(f, "  context: {:?},", self.context)?;
         write!(f, "}}")?;
         Ok(())
     }
