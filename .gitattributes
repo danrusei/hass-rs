@@ -1,0 +1,3 @@
+# Normalize line endings: store and check out LF everywhere,
+# regardless of the platform or the user's core.autocrlf setting.
+* text=auto eol=lf
